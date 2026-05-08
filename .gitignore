@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter / editor
+.ipynb_checkpoints/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large/raw data - DO NOT COMMIT
+PhDUpload/
+data/
+raw_data/
+*.7z
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Large image volumes
+*.tif
+*.tiff
+*.nii
+*.nii.gz
+*.mhd
+*.raw
+
+# Heavy intermediate results
+results_batos/
+experiments/
+tmp/
+temp/
+cache/
+
+# LaTeX build files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Keep final small figures explicitly if needed
+!paper/figs/*.png
+!paper/figs/*.pdf
+!paper/figs/*.svg
