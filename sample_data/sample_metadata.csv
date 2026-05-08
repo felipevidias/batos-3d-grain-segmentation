@@ -1,0 +1,3 @@
+name,shape_zyx,gray_dtype,label_dtype,num_labels,nonzero_label_voxels
+synthetic_crop01,96x96x96,uint8,uint16,18,80763
+synthetic_crop02,96x96x96,uint8,uint16,22,93306
