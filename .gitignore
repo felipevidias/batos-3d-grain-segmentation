@@ -56,3 +56,17 @@ cache/
 !paper/figs/*.png
 !paper/figs/*.pdf
 !paper/figs/*.svg
+
+# Allow small synthetic test crops
+!sample_data/
+!sample_data/*.tif
+!sample_data/*.png
+!sample_data/*.csv
+!sample_data/*.md
+
+# Allow small synthetic test crops
+!sample_data/
+!sample_data/*.tif
+!sample_data/*.png
+!sample_data/*.csv
+!sample_data/*.md
