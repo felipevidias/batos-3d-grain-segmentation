@@ -1,0 +1,2 @@
+method,n_grains,recall_iou050,recall_iou075,mean_best_iou,median_best_iou,mean_centroid_error,median_centroid_error,mean_relative_volume_error,median_relative_volume_error
+BA-TOS-LS-AUTO,2808,0.9896723646723646,0.801994301994302,0.8638052456819374,0.9312012496692779,1.3879107641824744,0.0903258519412673,0.1626503912501543,0.05096104143856012

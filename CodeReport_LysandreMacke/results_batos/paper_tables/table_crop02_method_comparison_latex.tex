@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Crop02 comparison against reference particle labels. The GT-mask oracle is shown only as a diagnostic upper bound.}
+\label{tab:crop02_comparison}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\hline
+Method & Pred. & FG Dice & Rec.@0.50 & P@0.50 & F1@0.50 & Overseg. \\
+\hline
+Otsu + distance watershed & 623 & 0.972 & 0.962 & 0.773 & 0.857 & 1.245 \\
+BA-TOS + Macke-style watershed & 82 & 0.967 & 0.049 & -- & -- & -- \\
+BA-TOS + distance watershed & 404 & 0.973 & 0.981 & 0.996 & 0.989 & 0.985 \\
+GT-mask oracle & 404 & 1.000 & 0.989 & -- & -- & -- \\
+\hline
+\end{tabular}%
+}
+\end{table}

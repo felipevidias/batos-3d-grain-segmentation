@@ -1,0 +1,2 @@
+method,threshold,gt_valid,pred_total,pred_eval,pred_ignored_border,tp,fp,fn,precision,recall,f1,overseg_ratio_pred_eval_gt
+EFRGP01_00_crop06_OtsuplusWS_iou0p75,0.75,271,526,331,195,213,118,58,0.6435045317220544,0.7859778597785978,0.707641196013289,1.2214022140221403

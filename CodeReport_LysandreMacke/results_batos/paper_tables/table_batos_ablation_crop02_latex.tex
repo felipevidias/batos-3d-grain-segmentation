@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Ablation analysis on crop02. The GT-mask oracle is reported only as a diagnostic upper bound.}
+\label{tab:batos_ablation_crop02}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrr}
+\hline
+Method & GT & Pred. & FG Dice & Rec.@0.25 & Rec.@0.50 \\
+\hline
+BA-TOS markers + Macke-style watershed & 265 & 82 & 0.967 & 0.170 & 0.049 \\
+BA-TOS markers + distance watershed & 265 & 404 & 0.973 & 1.000 & 0.981 \\
+BA-TOS markers + GT-mask watershed oracle & 265 & 404 & 1.000 & 1.000 & 0.989 \\
+\hline
+\end{tabular}%
+}
+\end{table}

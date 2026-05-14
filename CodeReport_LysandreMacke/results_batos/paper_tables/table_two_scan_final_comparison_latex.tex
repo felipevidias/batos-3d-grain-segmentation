@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Instance-level comparison across two consecutive scans and twelve representative 3D crops.}
+\label{tab:two_scan_final_comparison}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\hline
+Method & P@0.50 & R@0.50 & F1@0.50 & Overseg. & FP & FN \\
+\hline
+Macke-MinTree+WS & 0.560 & 0.386 & 0.436 & 0.552 & 509 & 1914 \\
+Otsu+WS & 0.840 & 0.961 & 0.895 & 1.155 & 607 & 115 \\
+BA-TOS & 0.980 & 0.967 & 0.974 & 0.987 & 39 & 77 \\
+\hline
+\end{tabular}%
+}
+\end{table}

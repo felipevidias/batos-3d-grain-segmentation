@@ -1,0 +1,2 @@
+method,threshold,gt_valid,pred_total,pred_eval,pred_ignored_border,tp,fp,fn,precision,recall,f1,overseg_ratio_pred_eval_gt
+EFRGP01_01_crop05_BA_TOS_iou0p50,0.5,129,183,127,56,116,11,13,0.9133858267716536,0.8992248062015504,0.9062500000000001,0.9844961240310077

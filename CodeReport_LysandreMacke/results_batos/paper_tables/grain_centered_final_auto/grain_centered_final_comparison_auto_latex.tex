@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{Grain-centered evaluation over valid reference grains.}
+\label{tab:grain_centered_auto}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\hline
+Method & Rec@.50 & Rec@.75 & Mean IoU & Median IoU & Med. Centroid Err. & Med. Vol. Err. \\
+\hline
+Min-tree-core+WS & 0.318 & 0.250 & 0.442 & 0.395 & 25.931 & 1.397 \\
+Otsu+WS & 0.959 & 0.761 & 0.834 & 0.890 & 0.233 & 0.088 \\
+BA-TOS & 0.973 & 0.793 & 0.857 & 0.931 & 0.091 & 0.052 \\
+BA-TOS-LS & 0.985 & 0.810 & 0.865 & 0.931 & 0.090 & 0.051 \\
+BA-TOS-LS-AUTO & 0.990 & 0.802 & 0.864 & 0.931 & 0.090 & 0.051 \\
+\hline
+\end{tabular}%
+}
+\end{table}

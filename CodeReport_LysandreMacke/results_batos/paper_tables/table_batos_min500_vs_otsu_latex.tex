@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Instance-level comparison across six representative EFRGP01\_00 crops. BA-TOS includes size-aware post-filtering with a minimum predicted-instance size of 500 voxels.}
+\label{tab:batos_min500_vs_otsu}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrr}
+\hline
+Method & P@0.50 & R@0.50 & F1@0.50 & Overseg. \\
+\hline
+Otsu+WS & 0.835 & 0.959 & 0.891 & 1.159 \\
+BA-TOS & 0.978 & 0.965 & 0.971 & 0.987 \\
+\hline
+\end{tabular}%
+}
+\end{table}

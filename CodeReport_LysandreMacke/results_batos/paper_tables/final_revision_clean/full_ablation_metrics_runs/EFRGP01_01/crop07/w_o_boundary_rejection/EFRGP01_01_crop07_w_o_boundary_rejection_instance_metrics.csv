@@ -1,0 +1,2 @@
+method,threshold,gt_valid,pred_total,pred_eval,pred_ignored_border,tp,fp,fn,precision,recall,f1,overseg_ratio_pred_eval_gt
+EFRGP01_01_crop07_w_o_boundary_rejection,0.5,260,17,16,1,0,16,260,0.0,0.0,0.0,0.06153846153846154

@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Ablation study of BA-TOS components at IoU@0.50.}
+\label{tab:ablation}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\hline
+Variant & P@.50 & R@.50 & F1@.50 & Overseg. & FP & FN \\
+\hline
+Full BA-TOS & 0.980 & 0.967 & 0.974 & 0.987 & 39 & 77 \\
+w/o boundary rejection & 0.000 & 0.000 & 0.000 & 0.034 & 102 & 2808 \\
+w/o size filter & 0.845 & 0.967 & 0.881 & 1.331 & 618 & 77 \\
+w/o flattening & 0.705 & 0.662 & 0.672 & 0.688 & 70 & 706 \\
+\hline
+\end{tabular}%
+}
+\end{table}

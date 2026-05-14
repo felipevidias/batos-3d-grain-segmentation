@@ -1,0 +1,2 @@
+method,n,precision,recall,f1,overseg_ratio_pred_eval_gt,fp,fn,tp
+BA-TOS local-split-large-labels,12,0.9852143852116536,0.9813127258055626,0.983256693725493,0.9960577445563575,30.0,41.0,2767.0

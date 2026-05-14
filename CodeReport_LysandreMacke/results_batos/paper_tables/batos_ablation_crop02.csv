@@ -1,0 +1,4 @@
+method,gt_valid,pred_labels,fg_iou,fg_dice,fg_precision,fg_recall,rec025,rec050,matched050,source
+BA-TOS markers + Macke-style watershed,265,82,0.9369071960812856,0.9674260057237835,0.9995600205755661,0.9372937372716819,0.16981132075471697,0.04905660377358491,13,results_batos/gustavo_EFR_00_crop_x600_y800_z300/eval_interior_min1000/summary.csv
+BA-TOS markers + distance watershed,265,404,0.9471687397160068,0.9728676517826089,0.9755499724361245,0.9702000410178162,1.0,0.9811320754716981,260,results_batos/gustavo_EFR_00_crop_x600_y800_z300/eval_batos_pipeline_final/summary.csv
+BA-TOS markers + GT-mask watershed oracle,265,404,0.9997518311656608,0.9998759001839771,1.0,0.9997518311656608,1.0,0.9886792452830189,262,results_batos/gustavo_EFR_00_crop_x600_y800_z300/eval_oracle_gtmask_interior_min1000/summary.csv

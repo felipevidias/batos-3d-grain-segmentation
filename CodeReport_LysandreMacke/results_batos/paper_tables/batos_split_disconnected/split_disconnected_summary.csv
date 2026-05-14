@@ -1,0 +1,2 @@
+method,n,precision,recall,f1,overseg_ratio_pred_eval_gt,fp,fn,tp
+BA-TOS split-disconnected,12,0.9802364930617423,0.9672702283677256,0.9737050800239101,0.9868141019950037,39.0,77.0,2731.0

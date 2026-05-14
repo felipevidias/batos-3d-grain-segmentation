@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Initial ablation of the size-aware post-filter at IoU@0.50.}
+\label{tab:ablation_size_filter}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\hline
+Variant & P@0.50 & R@0.50 & F1@0.50 & Overseg. & FP & FN \\
+\hline
+Full BA-TOS & 0.915 & 0.952 & 0.922 & 1.136 & 315 & 123 \\
+w/o size filter & 0.806 & 0.892 & 0.826 & 1.285 & 730 & 306 \\
+\hline
+\end{tabular}%
+}
+\end{table}

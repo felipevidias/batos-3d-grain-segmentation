@@ -1,0 +1,2 @@
+method,threshold,gt_valid,pred_total,pred_eval,pred_ignored_border,tp,fp,fn,precision,recall,f1,overseg_ratio_pred_eval_gt
+EFRGP01_00_crop06_Min_tree_coreplusWS_iou0p50,0.5,271,248,178,70,105,73,166,0.5898876404494382,0.3874538745387454,0.46770601336302897,0.6568265682656826

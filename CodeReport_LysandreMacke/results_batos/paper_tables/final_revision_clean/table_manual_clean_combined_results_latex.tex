@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Instance-level comparison across two consecutive scans and twelve representative 3D crops.}
+\label{tab:main_results_iou050}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrrrr}
+\hline
+Method & P@.50 & R@.50 & F1@.25 & F1@.50 & F1@.75 & Overseg. & FP & FN \\
+\hline
+Min-tree-core+WS & 0.560 & 0.386 & 0.583 & 0.436 & 0.354 & 0.552 & 509 & 1914 \\
+Otsu+WS & 0.840 & 0.961 & 0.930 & 0.895 & 0.686 & 1.155 & 607 & 115 \\
+BA-TOS & 0.980 & 0.967 & 0.993 & 0.974 & 0.767 & 0.987 & 39 & 77 \\
+\hline
+\end{tabular}%
+}
+\end{table}
