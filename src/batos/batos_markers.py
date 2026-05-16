@@ -1,28 +1,3 @@
-#!/usr/bin/env python3
-"""
-internal_dark_to_markers_batos.py
-
-batos: quando a seed bruta da ToSConOp foi toda rejeitada como external_background,
-não faz sentido continuar filtrando essa seed. O mapa ciano de "internal dark"
-passa a ser a fonte de marcadores.
-
-Entrada:
-- original: crop original, só para overlay.
-- flattened: volume flattened lambda=15.
-- internal_dark: mapa binário de mínimos escuros internos gerado pelo v14
-  (*_internal_dark_candidates.tif).
-
-Saídas:
-- *_batos_marker_components_raw.tif      componentes internos aceitos
-- *_batos_marker_centroids.tif           centróides rotulados
-- *_batos_marker_seed16_for_macke.tif    seed uint16 0/65535 para watershed.py da Macke
-- overlays de QC
-- CSV com métricas dos candidatos
-
-Ideia:
-internal dark candidates -> componentes 3D -> filtros geométricos/fotométricos -> NMS -> centróides.
-"""
-
 import argparse
 from pathlib import Path
 
