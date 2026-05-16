@@ -1,23 +1,3 @@
-#!/usr/bin/env python3
-"""
-filter_tos_seed_background_reject_v14.py
-
-Patch v14 — correção direta para o erro observado:
-as seeds ToSConOp estavam caindo no fundo/inter-grãos.
-
-A ideia correta:
-1. A ToSConOp continua gerando candidatos autoduais.
-2. O volume flattened é usado para detectar regiões escuras.
-3. Regiões escuras conectadas à BORDA DO VOLUME são classificadas como fundo externo.
-4. A seed ToS só é aceita se NÃO estiver nesse fundo externo e se for compatível
-   com um mínimo escuro interno cercado por uma vizinhança mais clara.
-
-Isso é diferente dos filtros v8/v9/v13:
-- não tenta adivinhar "grão inteiro" grosseiro;
-- rejeita explicitamente fundo conectado à borda;
-- mantém a ToSConOp como fonte dos candidatos.
-"""
-
 import argparse
 from pathlib import Path
 import numpy as np
