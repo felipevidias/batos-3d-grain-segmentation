@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-import argparse
-import csv
-from pathlib import Path
-import numpy as np
-import tifffile as tiff
-
-
 def read3d(path):
     arr = tiff.imread(str(path))
     arr = np.asarray(arr)
