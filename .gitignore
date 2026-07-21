@@ -70,3 +70,4 @@ cache/
 !sample_data/*.png
 !sample_data/*.csv
 !sample_data/*.md
+results/
