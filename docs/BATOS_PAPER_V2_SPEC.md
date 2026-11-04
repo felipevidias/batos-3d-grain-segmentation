@@ -208,6 +208,37 @@ size_filter: {enabled: true, min_voxels: 500}
 eval: {protocol: seed_ignore, iou: [0.25, 0.50, 0.75], min_gt_voxels: 1000, exclude_face_touching: true}
 ```
 
+## 3c. Controlled reconstruction experiments on EFRGP01_00_crop04 (2026-11-04) and frozen choice
+
+Authorised scope: development crop only. Only reconstructed steps may change. K, τs, NMS, the boundary rule, the gate,
+the mask and the watershed are frozen (enforced by `scripts/run_v2_control.py`). Target: F1@0.50 ≈ 0.985, F1@0.75 ≈ 0.978.
+All runs are under `C:\BA_TOS_DATA\runs\batos_paper_v2_controls\<name>\result.json`. All F1 values are seed-ignore,
+and identical with the size filter at 500 and off, except H4 (500 shown).
+
+| Run | Factor changed (one at a time vs v2 defaults) | MIN pool | Markers | Valid grains seeded /272 | F1@0.50 | F1@0.75 |
+|---|---|---|---|---|---|---|
+| v2 main / C2a | none (openrec r15 subtract → λ1 selector) | 1,938 | 255 | 172 | 0.559 | 0.491 |
+| C1 | original `batos_tos_seed.py` (pilot branch, unmodified) on the same image | 1,938 | — | — | — | — |
+| C2b | selector = main `batos_preprocess.py` λ15 on raw (May image) | 858 | 1 | 0 | 0.000 | 0.000 |
+| C2c | selector = λ1 on raw crop, no openrec | 1,945 | 261 | 178 | 0.609 | 0.538 |
+| C3 | openrec 8-bit stretch p1–p99 | 1,902 | 250 | 167 | 0.542 | 0.501 |
+| H1 | openrec mode = top-hat, max(I − B, 0) | 1,906 | 256 | 176 | 0.571 | 0.527 |
+| H2 | 3D Gaussian σ = 1 before the opening | 1,632 | 111 | 65 | 0.137 | 0.125 |
+| H3 | opening on the robust-u8 crop | 1,885 | 261 | 173 | 0.575 | 0.512 |
+| H4 | 2D per-slice opening, disk r | 2,421 | 261 | 168 | 0.532 | 0.431 |
+| H5 | division I/B·median(B) | 1,938 | 255 | 172 | 0.559 | 0.491 |
+
+Findings:
+1. **The port is exact (C1).** The original selector and `batos_v2.tos_select` give the identical 1,938-node MIN list, same order, zero difference in every score component.
+2. **λ15 is incompatible with the E-series boundary step (C2b).** Almost all dark structure is border-connected, one marker survives, and the gate fires. This independently confirms why E13 rejected `lambda15p0`.
+3. **The opening-by-reconstruction step is not the cause of the gap.** At r ≥ the grain radius the background B is nearly flat, so subtraction, division and top-hat are near-identity (C2a ≈ C2c ≈ H1 ≈ H5). Every openrec variant leaves the MIN pool at about 1.6k–2.4k and seeded grains at ≤ 178/272. The paper's K sweep (0.985 → 0.998 from K = 3600 to 7200) implies an original MIN pool well above 3,600.
+4. **Frozen choice:** the a-priori BG defaults are kept (subtract_background, raw, 3D, no pre-smoothing, 0.5/99.5). Picking the best of several near-equal dev-crop variants (C2c, H3, H1: +0.016 to +0.05) would be tuning without a supported mechanism.
+5. **Fidelity is not reached: v2 gives F1@0.50 = 0.559 on crop04 vs 0.985.** The remaining suspects are outside the openrec step and were not authorised in this round:
+   - (a) The true-dual selector's MIN scoring/capacity, e.g. K applied to raw nodes before τs, or MIN statistics such as `avg_min_area` and `max_min_height` computed differently.
+     On this image `max_min_height` = 10, so `h_score` saturates at 1 for every node and τs = 0.35 is decided by the delta, area, darkness and support terms.
+   - (b) The representative-point rule (BG12): 62 % of MIN points fall on inter-grain background and fail internal eligibility.
+   - (c) The lost e10 spatialization's eligibility, which may project candidates into internal components rather than requiring the point inside one (E11 carries a `projection_distance` column, always 0 in the recovered builder).
+
 ## 4. Environment plan
 
 **Status 2026-11-04: implemented (Phase 1b).** The venv `C:\BA_TOS_DATA\envs\batos-py312` (Python 3.12.10) is created and frozen to `environments/batos-py312.txt`. Higra 0.6.13 has a cp312 wheel, and a 3D ToS smoke test passed. The plan as originally written follows.

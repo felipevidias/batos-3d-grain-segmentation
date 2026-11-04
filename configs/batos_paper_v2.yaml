@@ -17,9 +17,14 @@ openrec:                   # opening-by-reconstruction flattening (batos_preproc
   radius_min: 8
   operation: opening       # BG5: opening | closing
   footprint: ball_sequence # BG3: skimage ball(r, decomposition='sequence') (exact ball is infeasible at r~22)
-  mode: subtract_background  # BG4: subtract_background (I - B + median(B)) | reconstructed_image (B)
-  input: raw               # BG7: raw uint16 crop
+  mode: subtract_background  # BG4: subtract_background (I - B + median(B)) | tophat (max(I - B, 0)) | divide_background | reconstructed_image (B)
+  input: raw               # BG7: raw uint16 crop | robust_u8
+  dimensionality: 3d       # 3d | 2d_per_slice (disk of radius r)
+  presmooth_sigma: 0.0     # Gaussian sigma applied before the opening (0 = none)
   robust_percentiles: [0.5, 99.5]
+  # FROZEN 2026-11-04 after controls C1-C3 and hypotheses H1-H5 on EFRGP01_00_crop04: no variant reached the
+  # fidelity target (best openrec variant 0.575 vs 0.985), and the MIN pool stayed ~1.6k-2.4k in every variant.
+  # So the a-priori defaults are kept, not the dev-crop maximum. Evidence: docs/BATOS_PAPER_V2_SPEC.md §3c.
 
 selector:                  # BG6: batos_preprocess.flatten_volume_u8 with lambda 1 on the openrec image
   lambda_xy: 1.0

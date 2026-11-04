@@ -38,5 +38,17 @@ class TestPreprocess(unittest.TestCase):
             self.assertGreater(openrec[self.labels > 0].mean(), openrec[self.labels == 0].mean() + 50)
 
 
+    def test_all_openrec_variants_run(self):
+        variants = [{"mode": "tophat"}, {"mode": "divide_background"}, {"presmooth_sigma": 1.0},
+                    {"input": "robust_u8"}, {"dimensionality": "2d_per_slice"}]
+        for override in variants:
+            cfg = dict(self.config["openrec"], **override)
+            flat, stats = preprocess.openrec_flatten(self.gray, 8, cfg)
+            self.assertEqual(flat.dtype, np.uint8, override)
+            self.assertEqual(flat.shape, self.gray.shape, override)
+        with self.assertRaises(ValueError):
+            preprocess.openrec_flatten(self.gray, 8, dict(self.config["openrec"], mode="nope"))
+
+
 if __name__ == "__main__":
     unittest.main()

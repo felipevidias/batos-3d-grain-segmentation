@@ -87,27 +87,47 @@ def _footprint(radius: int, kind: str):
     raise ValueError(f"Unknown openrec footprint {kind!r}")
 
 
-def openrec_flatten(gray: np.ndarray, radius: int, cfg: dict[str, Any]) -> tuple[np.ndarray, dict[str, Any]]:
-    if cfg.get("input", "raw") != "raw":
-        raise ValueError("Only openrec.input=raw is implemented (BG7)")
-    image = gray.astype(np.float32)
-    footprint = _footprint(radius, cfg["footprint"])
-    if cfg["operation"] == "opening":
-        marker = morphology.erosion(image, footprint)
-        background = morphology.reconstruction(marker, image, method="dilation")
-    elif cfg["operation"] == "closing":
-        marker = morphology.dilation(image, footprint)
-        background = morphology.reconstruction(marker, image, method="erosion")
-    else:
-        raise ValueError(f"Unknown openrec operation {cfg['operation']!r}")
+def _openrec_background(image: np.ndarray, radius: int, cfg: dict[str, Any]) -> np.ndarray:
+    operation = cfg["operation"]
+    if operation not in ("opening", "closing"):
+        raise ValueError(f"Unknown openrec operation {operation!r}")
 
-    if cfg["mode"] == "subtract_background":
-        flat = image - background + float(np.median(background))
-        flat = np.clip(flat, 0, None)
-    elif cfg["mode"] == "reconstructed_image":
+    def one(volume, footprint):
+        if operation == "opening":
+            return morphology.reconstruction(morphology.erosion(volume, footprint), volume, method="dilation")
+        return morphology.reconstruction(morphology.dilation(volume, footprint), volume, method="erosion")
+
+    if cfg.get("dimensionality", "3d") == "3d":                      # H4 alternative: 2d_per_slice
+        return one(image, _footprint(radius, cfg["footprint"]))
+    if cfg["dimensionality"] == "2d_per_slice":
+        disk = morphology.disk(radius, decomposition="sequence")
+        return np.stack([one(image[z], disk) for z in range(image.shape[0])])
+    raise ValueError(f"Unknown openrec dimensionality {cfg['dimensionality']!r}")
+
+
+def openrec_flatten(gray: np.ndarray, radius: int, cfg: dict[str, Any]) -> tuple[np.ndarray, dict[str, Any]]:
+    source = cfg.get("input", "raw")                                  # BG7 / H3
+    if source == "raw":
+        image = gray.astype(np.float32)
+    elif source == "robust_u8":
+        image = robust_u8(gray).astype(np.float32)
+    else:
+        raise ValueError(f"Unknown openrec input {source!r}")
+    if float(cfg.get("presmooth_sigma", 0.0)) > 0:                   # H2
+        image = ndi.gaussian_filter(image, sigma=float(cfg["presmooth_sigma"]))
+    background = _openrec_background(image, radius, cfg)
+
+    mode = cfg["mode"]                                                # BG4 / H1 / H5
+    if mode == "subtract_background":
+        flat = np.clip(image - background + float(np.median(background)), 0, None)
+    elif mode == "tophat":
+        flat = np.clip(image - background, 0, None)
+    elif mode == "divide_background":
+        flat = image / np.maximum(background, 1e-6) * float(np.median(background))
+    elif mode == "reconstructed_image":
         flat = background
     else:
-        raise ValueError(f"Unknown openrec mode {cfg['mode']!r}")
+        raise ValueError(f"Unknown openrec mode {mode!r}")
     p_low, p_high = cfg.get("robust_percentiles", [0.5, 99.5])
     flat_u8 = robust_u8(flat, p_low, p_high)
     stats = {

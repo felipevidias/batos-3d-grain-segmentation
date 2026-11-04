@@ -211,3 +211,43 @@ Strict protocol: batos_tos F1@0.50 = 0.496; edt_otsu = 0.657. The size filter ch
 6. Partial evidence of correct plumbing: the EDT-Otsu control under the same mask reaches 0.697 here. Paper Table II's Otsu+WS crop-macro mean is 0.830, so the shared mask/EDT path is also somewhat below the paper on this crop, consistent with the openrec/flat image (suspect a) differing too.
 
 Status: Phase 1c implementation complete. Fidelity is **not** reached on the development crop. The other 11 crops were not run.
+
+---
+
+## 2026-11-04 — Session 5: controlled reconstruction experiments on EFRGP01_00_crop04 (authorised)
+
+Rules applied:
+- Development crop only.
+- K, τs, NMS, boundary rule, gate thresholds, mask and watershed are frozen. `scripts/run_v2_control.py` refuses overrides of those sections.
+- One factor at a time; every hypothesis was named before its run.
+- Outputs: `C:\BA_TOS_DATA\runs\batos_paper_v2_controls\<name>\result.json` (command, git state, overrides, pool, markers, seeded grains, gate, metrics).
+
+### Controls
+- **C1 (port check):** the unmodified `batos_tos_seed.py` from `origin/batos-ls-auto-tile-pilot` was run (git show → scratchpad, `-I`) on the v2 selector image with the E11 flags (`--max-selected-nodes 3600`, etc.). It gives 1,938 candidates; tree: 9,331,331 nodes, 473,167 MIN-like, max_min_height 10, avg_min_area 10.475, dark_alt_max 177. Diffed against `batos_v2.tos_select.score_candidates` (k_split min_only): **identical node list and order; max |diff| = 0 for score, area, height, alt, parent_alt, delta, support, support_area, support_steps and every sub-score; the top-1800 sets are identical. No port bug.**
+- **C2 (image check)**, same selector and downstream; only the selector image changes. The two new images were made with the unmodified `src/batos/batos_preprocess.py` from main (verified identical to main) on the raw crop.
+  - C2a, v2 selector (harness re-run): pool 1,938 · markers 255 · seeded 172/272 · F1@.50 0.559 · F1@.75 0.491. This reproduces the main run.
+  - C2b, λ15 on raw (May image): pool 858 · markers **1** · seeded 0 · F1 0.000 / 0.000. The gate fires (1/1).
+  - C2c, λ1 on raw, no openrec: pool 1,945 · markers 261 · seeded 178 · F1 0.609 / 0.538.
+- **C3 (8-bit stretch):** the recovered chain before the ToS (`batos_preprocess` robust_u8) uses 0.5/99.5, which v2 already matches. The E11 p1–p99 stretch applies to the mask/control image, which v2 already ports exactly. The only unrecovered 8-bit step is the openrec `_8u` output; C3 sets it to p1–p99. Result: pool 1,902 · markers 250 · seeded 167 · F1 0.542 / 0.501. No improvement.
+
+### Hypotheses on the opening-by-reconstruction step (named before running)
+| ID | Hypothesis | Pool | Markers | Seeded | F1@.50 | F1@.75 |
+|---|---|---|---|---|---|---|
+| H1 | top-hat: I_f = max(I − B, 0), no median add-back | 1,906 | 256 | 176 | 0.571 | 0.527 |
+| H2 | 3D Gaussian σ = 1 pre-smoothing before the opening | 1,632 | 111 | 65 | 0.137 | 0.125 |
+| H3 | opening on the robust-u8 crop instead of raw uint16 | 1,885 | 261 | 173 | 0.575 | 0.512 |
+| H4 | 2D per-slice opening by reconstruction, disk r | 2,421 | 261 | 168 | 0.532 (500) / 0.527 (off) | 0.431 / 0.427 |
+| H5 | division I/B·median(B) instead of subtraction | 1,938 | 255 | 172 | 0.559 | 0.491 |
+
+The EDT-Otsu control under the same mask moved with the image: 0.195 (H2) to 0.727 (H3).
+
+### Conclusion and freeze
+- Hypotheses are exhausted; **none comes within 0.01 of 0.985** (best of all variants: C2c 0.609; best openrec variant: H3 0.575).
+- Every openrec variant leaves the MIN pool at ~1.6k–2.4k and seeded grains at ≤ 178/272. The paper's K sweep implies an original pool well above 3,600, so **the openrec step is not the source of the gap.**
+- `configs/batos_paper_v2.yaml` is frozen with the a-priori BG defaults (subtract_background, raw, 3D, no pre-smoothing, 0.5/99.5). The new fields are written out explicitly. I did not pick the dev-crop maximum among near-equal variants.
+- Evidence and the remaining suspects (true-dual MIN scoring/capacity, representative-point rule, e10 eligibility/projection) are in `docs/BATOS_PAPER_V2_SPEC.md` §3c.
+- Code changes this session:
+  - `preprocess.py`: new reconstructed-step options `mode` tophat/divide_background, `input` robust_u8, `dimensionality` 2d_per_slice, `presmooth_sigma`. Defaults unchanged.
+  - `scripts/run_v2_control.py`: the control harness.
+  - A test covering all openrec variants (19 tests pass).
+- No other crop was run.
