@@ -54,7 +54,9 @@ class TestGate(unittest.TestCase):
             diag, markers = _frames([2] * 5)
             diag.to_csv(tmp / "diag.csv", index=False)
             markers.to_csv(tmp / "markers.csv", index=False)
-            route = gate.run(tmp / "diag.csv", tmp / "markers.csv", tmp / "tos.tif", flat, self.cfg, tmp / "out")
+            write3d(tmp / "flat.tif", flat)
+            route = gate.run(tmp / "diag.csv", tmp / "markers.csv", tmp / "tos.tif", flat, self.cfg, tmp / "out",
+                             tmp / "flat.tif")
             self.assertTrue(route["gate"]["gate_true"])
             self.assertEqual(route["selected_source"], "edt_otsu")
             self.assertEqual(route["marker_counts"]["edt_otsu"], 5)

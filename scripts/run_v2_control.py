@@ -83,7 +83,7 @@ def main(argv=None) -> int:
 
     tos = tos_select.run(selector, config, out / "02_tos", args.crop_id, log=lambda *a: None)
     route = gate.run(Path(tos["diagnostics_csv"]), Path(tos["markers_csv"]), Path(tos["markers_tif"]),
-                     flat, config, out / "03_gate")
+                     flat, config, out / "03_gate", ws_path)
     ws = watershed.run(flat, selector, read3d(tos["internal_dark"]),
                        {"tos_e11_min": Path(tos["markers_tif"]), "edt_otsu": Path(route["edt_otsu_markers"])},
                        config, out / "04_watershed")

@@ -7,6 +7,7 @@ paths:
   crops_root: C:\BA_TOS_DATA\crops
   runs_root: C:\BA_TOS_DATA\runs\batos_paper_v2
   all_runs: results/all_runs.csv   # CLAUDE.md rule 6 (git-ignored)
+  e11_audit_dir: C:/BA_TOS_DATA/linux_import/linux_patches/BA_TOS_E11_pre_article_tests/audit   # recovered scripts run verbatim
 
 scale:                     # BG1: port of e13_estimate_scale.py (GT-free)
   method: e13
@@ -65,6 +66,7 @@ tos:                       # port of batos_tos_seed.py (pilot branch) + true-dua
   support_set: all         # BG9: exclusive supports relative to all selected nodes (all) or MIN only (min)
 
 markers:                   # recovered: e11_build_markers_ablation.py
+  implementation: e11_verbatim   # S1: run the recovered script unmodified (port kept as a cross-check)
   polarity: min
   nms_radius: 6.0
   edt_priority_weight: 0.20
@@ -89,6 +91,7 @@ gate:                      # recovered: e23b/e23c
   median_max: 3.0
   q75_max: 4.0
   fallback: edt_otsu_matched_count
+  edt_implementation: e11_verbatim   # S1: e11_build_control_markers.py --mode otsu_edt, verbatim
   edt_nms_radius: 6.0
 
 watershed:                 # recovered: e11_run_fixed_mask_watershed.py

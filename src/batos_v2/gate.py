@@ -145,16 +145,23 @@ def edt_otsu_markers(image: np.ndarray, nms_radius: float, target_count: int | N
 
 # ============================================================ stage runner
 def run(diagnostics_csv: Path, markers_csv: Path, tos_markers_tif: Path, flat_image: np.ndarray,
-        config: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+        config: dict[str, Any], out_dir: Path, flat_image_path: Path | None = None) -> dict[str, Any]:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     gate = compute_gate(pd.read_csv(diagnostics_csv), pd.read_csv(markers_csv), config["gate"])
     tos_volume = read3d(tos_markers_tif, "ToS markers")
     target = marker_component_count(tos_volume)
     edt_frame, edt_volume, edt_info = edt_otsu_markers(flat_image, config["gate"]["edt_nms_radius"], target)
-    edt_csv = out_dir / "markers_edt_otsu.csv"
-    edt_frame.to_csv(edt_csv, index=False)
-    edt_tif = write3d(out_dir / "markers_edt_otsu.tif", edt_volume)
+    edt_frame.to_csv(out_dir / "markers_edt_otsu_port.csv", index=False)
+    edt_tif = write3d(out_dir / "markers_edt_otsu_port.tif", edt_volume)
+    if config["gate"].get("edt_implementation", "port") == "e11_verbatim":
+        if flat_image_path is None:
+            raise ValueError("gate.edt_implementation=e11_verbatim needs flat_image_path")
+        from .recovered import e11_edt_otsu
+        verbatim = e11_edt_otsu(config, Path(flat_image_path), Path(tos_markers_tif), out_dir / "markers_edt_otsu_e11")
+        verbatim_volume = read3d(verbatim["markers_tif"])
+        edt_info = dict(edt_info, **verbatim, port_identical_to_verbatim=bool(np.array_equal(verbatim_volume, edt_volume)))
+        edt_tif, edt_volume = Path(verbatim["markers_tif"]), verbatim_volume
     source, source_path = ("edt_otsu", edt_tif) if gate["gate_true"] else ("tos_e11_min", Path(tos_markers_tif))
     selective = out_dir / "batos_selective_markers_uint16.tif"
     shutil.copy2(source_path, selective)

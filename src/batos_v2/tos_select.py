@@ -405,13 +405,24 @@ def run(selector_u8: np.ndarray, config: dict[str, Any], out_dir: Path, prefix: 
     diagnostics.to_csv(diag_path, index=False)
     log(f"[spatial] {len(diagnostics)} candidates spatialized in {time.time() - t0:.1f}s")
 
+    # Port (cross-check; always computed)
     markers, volume, marker_info = build_markers(diagnostics, internal, config["markers"])
-    markers.to_csv(out_dir / "markers.csv", index=False)
-    marker_path = write3d(out_dir / "markers_uint16.tif", volume)
-    log(f"[markers] {marker_info['markers_before_nms']} consolidated -> {marker_info['marker_count']} after NMS")
+    markers.to_csv(out_dir / "markers_port.csv", index=False)
+    port_path = write3d(out_dir / "markers_port_uint16.tif", volume)
+    markers_csv, marker_path = out_dir / "markers_port.csv", port_path
+    if config["markers"].get("implementation", "port") == "e11_verbatim":
+        from .recovered import e11_markers
+        verbatim = e11_markers(config, diag_path, internal_path, out_dir / "markers_e11")
+        same = bool(np.array_equal(read3d(verbatim["markers_tif"]), volume))
+        marker_info = dict(marker_info, **verbatim, port_identical_to_verbatim=same)
+        if not same:
+            log("[markers] WARNING: port differs from verbatim E11 builder; using verbatim")
+        markers_csv, marker_path = Path(verbatim["markers_csv"]), Path(verbatim["markers_tif"])
+    log(f"[markers] {marker_info['markers_before_nms']} consolidated -> {marker_info['marker_count']} after NMS "
+        f"({config['markers'].get('implementation', 'port')})")
     info = {"boundary": boundary_info, "tos": tos_info, "markers": marker_info,
             "internal_dark": str(internal_path), "candidates_csv": str(cand_path),
-            "diagnostics_csv": str(diag_path), "markers_csv": str(out_dir / "markers.csv"),
+            "diagnostics_csv": str(diag_path), "markers_csv": str(markers_csv),
             "markers_tif": str(marker_path)}
     write_json(out_dir / "tos_select.json", info)
     return info

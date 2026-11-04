@@ -251,3 +251,26 @@ The EDT-Otsu control under the same mask moved with the image: 0.195 (H2) to 0.7
   - `scripts/run_v2_control.py`: the control harness.
   - A test covering all openrec variants (19 tests pass).
 - No other crop was run.
+
+---
+
+## 2026-11-04 — Session 6: round 2 (selector and spatialisation), S1
+
+Authorised scope: crop04 only. Frozen parameters untouched; named hypotheses; one factor at a time.
+
+### S1: the recovered E11 builder is the frozen marker stage (adopted verbatim)
+Evidence given by the author: the E13 README lists the frozen E11 settings ("K=3600, MIN candidates, score threshold=0.35, point-internal consolidation, NMS=6, EDT weight=0.20, connectivity 1"). The E11 README states that `e11_build_markers_ablation.py` in MIN mode reproduces the E10 markers voxel by voxel.
+
+- **Verbatim vs port.** Both unmodified scripts were run from `C:\BA_TOS_DATA\linux_import\linux_patches\BA_TOS_E11_pre_article_tests\audit\` on the crop04 main-run inputs.
+  - `e11_build_markers_ablation.py --polarity min --nms-radius 6 --edt-priority-weight 0.20 --min-priority-bonus 0.05 --expected-marker <port markers>`: `regression_equal_binary_mask: True`, labels identical, 256 → 255 markers.
+  - `e11_build_control_markers.py --mode otsu_edt --nms-radius 6 --match-count-from <ToS markers>`: labels identical to the port (255).
+- **What the builder needs.** Inputs are `--diagnostic` (CSV) and `--internal-source` (internal_dark TIFF); it never reads an image. Required CSV columns (lines 206–213): `node, polarity, score, point_z, point_y, point_x, has_reconstructed_region`. No other column is read.
+- **Point-internal consolidation:**
+  - L264: point → 6-connected internal_dark component label.
+  - L272: keep only polarity-matching rows whose point component is > 0.
+  - L309–317: sort by (component, priority ↓, score_norm ↓, row) and keep one per component.
+- **EDT weight 0.20 (L287–302):** priority = minmax(score over all valid rows, both polarities) + 0.20 · log1p(max EDT of the point's internal component) / log1p(global max component EDT) + 0.05 · [polarity == min]. Then greedy NMS r = 6 (L327).
+- **`projection_distance` is hard-coded to 0.0 (L299).** No projection exists in the frozen builder.
+- **Pipeline change.** New module `src/batos_v2/recovered.py` calls both scripts as subprocesses (`-I`, unmodified; script SHA-256 recorded in tos_select.json / route.json). Config: `markers.implementation: e11_verbatim`, `gate.edt_implementation: e11_verbatim`, `paths.e11_audit_dir`. The port still runs and is stored as `markers_port*` with a `port_identical_to_verbatim` flag.
+- **Crop04 end-to-end check** (`S1_verbatim_markers_pipeline`): pool 1,938 · markers 255 · seeded 172/272 · F1@.50 0.559 · F1@.75 0.491 · gate 13/27. Both `port_identical_to_verbatim` flags are True.
+- **Consequence:** reproduction now reduces to producing the candidate CSV that `batos_tos_seed_true_dual.py` + `e10_spatialize_candidates_no_gt.py` produced: `node, polarity, score, point_z/y/x, has_reconstructed_region` (+ `region_voxels` for the gate). S2–S5 are pending author review of this S1 report.

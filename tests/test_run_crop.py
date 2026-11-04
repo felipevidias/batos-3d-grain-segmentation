@@ -21,8 +21,8 @@ class TestRunCrop(unittest.TestCase):
                     "crops": [{"crop_id": "SYN_crop01", "scan": "SYN", "x": 0, "y": 0, "z": 0, "size": 64}]}
             (tmp / "meta.json").write_text(json.dumps(meta))
             cfg = load_config("configs/batos_paper_v2.yaml")
-            cfg["paths"] = {"crops_metadata": str(tmp / "meta.json"), "crops_root": str(tmp / "crops"),
-                            "runs_root": str(tmp / "runs"), "all_runs": str(tmp / "all_runs.csv")}
+            cfg["paths"].update({"crops_metadata": str(tmp / "meta.json"), "crops_root": str(tmp / "crops"),
+                            "runs_root": str(tmp / "runs"), "all_runs": str(tmp / "all_runs.csv")})
             cfg["eval"]["min_gt_voxels"] = 100
             (tmp / "cfg.yaml").write_text(yaml.safe_dump(cfg))
             self.assertEqual(run_crop.main(["--crop-id", "SYN_crop01", "--config", str(tmp / "cfg.yaml")]), 0)

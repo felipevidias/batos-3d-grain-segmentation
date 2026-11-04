@@ -111,7 +111,7 @@ def main(argv=None) -> int:
 
     t = time.time()
     route = gate.run(Path(tos["diagnostics_csv"]), Path(tos["markers_csv"]), Path(tos["markers_tif"]),
-                     openrec, config, run_dir / "03_gate")
+                     openrec, config, run_dir / "03_gate", Path(pre["openrec_image"]))
     timings["gate"] = time.time() - t
     g = route["gate"]
     log(f"[3/5] gate: median={g['region_voxels_median']} q75={g['region_voxels_q75']} -> "
