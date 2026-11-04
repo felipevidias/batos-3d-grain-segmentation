@@ -318,3 +318,35 @@ Evidence given by the author: the E13 README lists the frozen E11 settings ("K=3
 - `markers.implementation` and `gate.edt_implementation`: `e11_verbatim`.
 - **crop04 = 0.563 / 0.496 vs the 0.985 / 0.978 target: not reached.**
 - Evidence and remaining suspects: `docs/BATOS_PAPER_V2_SPEC.md` §3d. The selector image (λ1 high-pass → 1-voxel-speckle internal mask, inconsistent with the compact markers of paper Fig. 2) and/or a different Higra version's tree are the open questions. No other crop was run.
+
+---
+
+## 2026-11-04 — Session 7: round 4, frozen E-series code run verbatim — REPRODUCED
+
+Sources: `C:\BA_TOS_DATA\linux_import\chat_recovered\` (README read) and `zsh_recovered\` (INDEX read).
+
+### Steps
+1. **Frozen pipeline** (`src/batos_v2/frozen.py`, commit `6a6222f`).
+   - Unmodified scripts via subprocess `-I`, flags and order from `e13_stage2_worker_20260725_165544.sh` → `run_e13_e11_all_crops.sh`. The recovered runner differs from the linux_patches copy only by `find -L` for the GT.
+   - Preprocessing: e13_estimate_scale → openrec v2 (zsh_recovered) with r = max(8, round(1.5·R̂)) → run_batos_pipeline steps 1–4 with λ 1 (flags identical to the recovered Linux `run_batos_pipeline.sh`). Steps 5–6 (legacy watershed) are not consumed by E11.
+   - Then true-dual K3600 → e10 spatialize → e11 markers (min, dual) and EDT-Otsu control → e11 fixed-mask watershed → e09b → e23c route + selective watershed + e09b.
+   - Not run: `audit_true_batos_e07.py` (GT capacity audit, not recovered), internal_medial / mintree_e14 controls.
+   - Script SHA-256 is recorded per step. The pilot-branch `batos_tos_seed.py` (needed for the background step's `--seed`) was staged unmodified to `C:\BA_TOS_DATA\frozen_code\pilot_branch_413920f\`.
+2. **Golden check:**
+   - The golden CSV is not crop04 (point overlap 0.03 %) and not either original crop05 (0.03 %).
+   - Best match is the holdout EFRGP01_01_crop04: 29.8 % identical points, no row identity. Most likely that crop under E10-era preprocessing (unproven).
+   - **Our crop05 runs vs the recovered original E13 outputs (both scans): identical** selector CSV (21 columns, 3,600 rows, same order), spatial diagnostics (41 columns), markers_tos_min and markers_edt_otsu tables, fixed-mask and surface SHA-256, and all e09b metrics (max |ΔF1| = 0).
+3. **crop04 (development):** seed_ignore tos_e11_min **F1@0.50 = 0.985185, F1@0.75 = 0.977778** (targets 0.985 / 0.978). Gate off: m_v = 43, q_v = 49, with 398 markers; the E23B README states crop04 median 43. MIN ≡ DUAL. Strict protocol: 0.828. EDT-Otsu: 0.887. Runtime 369 s.
+4. **Since crop04 matched:**
+   - EFRGP01_00_crop05: gate **fires (2, 3)**, 53 markers. ToS F1 0.012121 / 0.000. Selective (EDT) **0.259887** / 0.237. These are the paper's ToS min 0.012 and sel min 0.260.
+   - EFRGP01_01_crop05: gate **fires (2, 3)**, 191 markers. ToS 0.065574 / 0.049. Selective (EDT) 0.807273 / 0.793.
+   - Holdout EFRGP01_01_crop04: gate off (43, 49), 397 markers, ToS **0.984848 / 0.984848**.
+5. **Environment:** the venv is aligned to `requirements_environment_initial.txt` (numpy 2.5.1, scipy 1.18.0, scikit-image 0.26.0, higra 0.6.13, pandas 3.0.5, tifffile 2026.7.14, …). All pins match (commit `bd3ae9b`). Remaining difference: Python 3.12.10 here vs 3.13 on Linux (cpython-313 caches). With the crop05 outputs bit-identical, this has no observed effect.
+
+### Interpretation
+- The fidelity gap of rounds 1–3 came from three reconstruction errors, now replaced by recovered code:
+  1. the openrec input/output stretch (8-bit p1–p99 before the opening);
+  2. the exact ball;
+  3. the true-dual selector itself (polarity-aware |height|, intensity score, hierarchy suppression; the legacy selector we ported is sign-sensitive to higra's direction flip).
+- BG10 is answered: the E-series numbers are **without** a prediction size filter.
+- The remaining 8 crops (00/01 crop02, 03, 06, 07) were not run, per instruction.

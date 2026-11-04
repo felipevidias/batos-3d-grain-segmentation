@@ -266,6 +266,52 @@ Findings:
    - The evidence now points at how candidate points meet the speckled internal mask. The λ1 high-pass makes the mask 1-voxel speckle, which is incompatible with the paper's Fig. 2 (compact internal markers).
    - So either the original selector image differed from `batos_preprocess` λ = 1 of our openrec output, or the original Higra version also built a different tree on it. Both are outside what the recovered code can settle.
 
+## 3e. Round 4: frozen E-series code recovered and run verbatim (2026-11-04) — REPRODUCED
+
+Source: `C:\BA_TOS_DATA\linux_import\chat_recovered\` (the author's chat attachments) and `zsh_recovered\`
+(heredocs from the Linux shell history). `batos_v2.frozen` calls every script **unmodified**, with the
+flags and order of `e13_stage2_worker_20260725_165544.sh` → `run_e13_e11_all_crops.sh`. SHA-256 of each
+script is in `frozen_run.json`. The venv is aligned to the Linux `requirements_environment_initial.txt`;
+all pins match except Python, which is 3.12 here and was 3.13 on Linux.
+
+**Which reconstructions are now replaced by recovered code:**
+| Guess | Status | Recovered truth |
+|---|---|---|
+| BG1 scale estimate | confirmed (now verbatim) | `e13_estimate_scale.py` |
+| BG2 openrec radius | confirmed | max(8, round(1.5·R̂)) (`run_batos_openrec_auto_minparam.py`) |
+| BG3 footprint | **replaced** | exact `ball(r)` (not a decomposed ball) |
+| BG4 background use | confirmed | I_f = I − B + median(B) |
+| BG5 opening | confirmed | erosion(ball r) + reconstruction by dilation |
+| BG6 λ1 selector | confirmed (verbatim) | `batos_preprocess.py --lambda-xy 1` on the openrec image |
+| BG7 input dtype | **replaced** | raw crop → **8-bit p1–p99 over all voxels** before the opening; output rescaled p1–p99 |
+| BG8 true-dual split | **replaced** | `batos_tos_seed_true_dual.py`: polarity-aware scoring with `polarity_height = |height|` normalised by the per-polarity p95 height scale, intensity score, hierarchy suppression per polarity, 1800 MIN + 1800 MAX |
+| BG9 exclusive supports | **replaced** (same idea) | `e10_spatialize_candidates_no_gt.py` (nearest selected ancestor propagation) |
+| BG10 size filter | **answered** | the E-series evaluator `e09b` has **no prediction size filter** (`min_size` only fed the legacy watershed). Published E-series numbers are unfiltered |
+| BG11 seed-ignore | **replaced** | `e09b_ignore_aware_audit.py` (protocols strict, seed_ignore, overlap_ignore, seed_or_overlap_ignore) |
+| BG12 representative point | **replaced** | e10: voxel nearest the centroid of the candidate's region |
+| S3b height direction | **obsolete** | the true-dual selector uses `abs(height)`, so it is immune to the higra 0.6.13 `'auto'` direction flip that broke the legacy selector |
+| Marker / control / watershed stages | verbatim | E11 scripts (byte-identical in linux_patches and chat_recovered) |
+
+**Results (seed_ignore, `tos_e11_min` = BA-TOS_ToS; selective = E23c route):**
+| Crop | Gate (m_v, q_v) | ToS markers | ToS F1@.50 / @.75 | Selective F1@.50 / @.75 | Paper |
+|---|---|---|---|---|---|
+| EFRGP01_00_crop04 (dev) | off (43, 49) | 398 | **0.985 / 0.978** | = ToS | 0.985 / 0.978 ✔ |
+| EFRGP01_01_crop04 (holdout) | off (43, 49) | 397 | 0.985 / 0.985 | = ToS | — |
+| EFRGP01_00_crop05 | **on (2, 3)** | 53 | 0.012 / 0.000 | 0.260 / 0.237 (EDT) | ToS min 0.012, sel min 0.260 ✔ |
+| EFRGP01_01_crop05 | **on (2, 3)** | 191 | 0.066 / 0.049 | 0.807 / 0.793 (EDT) | gate (2, 3) ✔ |
+
+**Bit-level validation against the original Linux outputs (both crop05):** identical selector CSV (21 columns),
+spatial diagnostics (41 columns), ToS-MIN and EDT-Otsu marker tables, fixed-mask and −EDT surface array SHA-256, and every
+e09b metric (all protocols, |ΔF1| = 0).
+
+**Golden CSV** (`candidate_diagnostics_no_gt_ORIGINAL_RUN_unknown_crop.csv`): the best match is EFRGP01_01_crop04, with
+29.8 % of points identical and no row-wise identity. Overlap with our crop04 and with both original crop05 files is at chance
+(0.03 %). Most likely the holdout under the earlier **E10-era** preprocessing (scale from the cleaned-crop
+estimator, hence a different openrec radius and tree). This is not proven.
+
+The earlier rounds' reconstructions (§3b–3d) are superseded. The `batos_v2` port modules remain for reference,
+but the reproduction of record is `python -I -m batos_v2.frozen --crop-id <id>`.
+
 ## 4. Environment plan
 
 **Status 2026-11-04: implemented (Phase 1b).** The venv `C:\BA_TOS_DATA\envs\batos-py312` (Python 3.12.10) is created and frozen to `environments/batos-py312.txt`. Higra 0.6.13 has a cp312 wheel, and a 3D ToS smoke test passed. The plan as originally written follows.
