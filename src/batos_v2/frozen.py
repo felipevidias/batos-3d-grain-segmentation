@@ -109,17 +109,28 @@ class Runner:
             import psutil
             proc = psutil.Popen(cmd, cwd=cwd, stdout=log, stderr=subprocess.STDOUT)
             peak = 0
-            while proc.poll() is None:  # peak working set of the stage subprocess (Windows: peak_wset)
+            # Max peak working set over the stage's process tree. On Windows a venv python.exe is a launcher
+            # (~5 MB) that re-spawns the base interpreter as a child, so the child must be included.
+            # Sampled every 0.2 s; peak_wset is the OS-tracked per-process maximum, so sampling misses only
+            # the last <=0.2 s of a child that exits between polls.
+            while proc.poll() is None:
                 try:
-                    info = proc.memory_info()
-                    peak = max(peak, getattr(info, "peak_wset", 0) or info.rss)
+                    tree = [proc, *proc.children(recursive=True)]
                 except psutil.Error:
-                    pass
+                    tree = [proc]
+                for p in tree:
+                    try:
+                        info = p.memory_info()
+                        peak = max(peak, getattr(info, "peak_wset", 0) or info.rss)
+                    except psutil.Error:
+                        pass
                 time.sleep(0.2)
             returncode = proc.returncode
         self.steps.append({"step": name, "script": str(script), "sha256": sha256(script),
                            "command": subprocess.list2cmdline(cmd), "seconds": round(time.time() - t0, 1),
-                           "peak_memory_mb": round(peak / 2 ** 20, 1), "returncode": returncode})
+                           "peak_memory_mb": round(peak / 2 ** 20, 1),
+                           "peak_memory_method": "max peak_wset over process tree (launcher + children)",
+                           "returncode": returncode})
         print(f"[frozen] {name}: rc={returncode} ({time.time() - t0:.0f}s, peak {peak / 2 ** 20:.0f} MB)", flush=True)
         if returncode != 0:
             raise RuntimeError(f"{name} failed; see {self.log_path}")
