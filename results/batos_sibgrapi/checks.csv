@@ -1,0 +1,13 @@
+crop_id,wrapper_050_075_equal_plain_e09b,gate_triggered,region_voxels_median,region_voxels_q75,tos_sel_segmentation_bitwise_identical
+EFRGP01_00_crop02,True,False,44.0,50.0,True
+EFRGP01_00_crop03,True,False,42.0,49.0,True
+EFRGP01_00_crop04,True,False,43.0,49.0,True
+EFRGP01_00_crop05,True,True,2.0,3.0,False
+EFRGP01_00_crop06,True,False,38.0,50.0,True
+EFRGP01_00_crop07,True,False,43.0,50.0,True
+EFRGP01_01_crop02,True,False,43.0,49.0,True
+EFRGP01_01_crop03,True,False,17.0,43.0,True
+EFRGP01_01_crop04,True,False,43.0,49.0,True
+EFRGP01_01_crop05,True,True,2.0,3.0,False
+EFRGP01_01_crop06,True,False,41.0,49.0,True
+EFRGP01_01_crop07,True,False,42.0,49.0,True

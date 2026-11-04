@@ -72,4 +72,8 @@ cache/
 !sample_data/*.png
 !sample_data/*.csv
 !sample_data/*.md
-results/
+# results/: small tables (.csv, .md) are tracked; everything else (.tif, .npy, large outputs) is ignored
+results/**
+!results/**/
+!results/**/*.csv
+!results/**/*.md
