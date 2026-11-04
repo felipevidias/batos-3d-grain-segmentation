@@ -6,6 +6,7 @@ paths:
   crops_metadata: data/metadata/crops_sibgrapi.json
   crops_root: C:\BA_TOS_DATA\crops
   runs_root: C:\BA_TOS_DATA\runs\batos_paper_v2
+  all_runs: results/all_runs.csv   # CLAUDE.md rule 6 (git-ignored)
 
 scale:                     # BG1: port of e13_estimate_scale.py (GT-free)
   method: e13
