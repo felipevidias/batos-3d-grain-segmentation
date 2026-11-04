@@ -45,7 +45,7 @@ requirements.txt  numpy scipy scikit-image tifffile pillow matplotlib pandas py7
 | Gate | m_v ≤ 3 and q_v ≤ 4 → EDT-Otsu fallback (fires only on `*_crop05` of both scans) |
 | Mask (`batos-paper-v2`) | Otsu **without offset** on the p1–p99-normalized openrec image, 6-conn closing ×1, fill holes, components ≥ 500, ∪ ToS-MIN and baseline marker voxels (`e11_run_fixed_mask_watershed.py`) |
 | Mask (legacy preset only) | Otsu, offset −10, closing 1 voxel (as printed in Table I) |
-| Filters | pred < 500 voxels removed (**v2: config switch, unknown whether the published E-series numbers used it; Phase 1c runs both flat-500 and off**); GT < 1000 voxels or touching a face excluded |
+| Filters | pred < 500 voxels removed (**v2: the published E-series numbers did NOT use it — Table II matches filter-off; established 2026-11-04 Phase 1 closure. Filter-500 results are reported alongside, labelled.** Apply without `--relabel`: e09b links predictions to seeds by label value); GT < 1000 voxels or touching a face excluded |
 | Evaluation (v2) | seed-ignore, paper §III-C: a prediction seeded exclusively inside an excluded reference component is ignored; a background-seeded prediction remains a false positive |
 | IoU thresholds | 0.25 / 0.50 / 0.75 |
 | Expected results (v2 fidelity targets) | crop-macro mean F1@0.50: BA-TOS_ToS 0.824 ± 0.367 (median 0.985, min 0.012); BA-TOS_sel 0.906 ± 0.210 (min 0.260); mean F1@0.75 0.817 → 0.899 |
@@ -55,6 +55,14 @@ requirements.txt  numpy scipy scikit-image tifffile pillow matplotlib pandas py7
 | Crop extent | 128³ / 160³ / 200³ → mean F1@0.50 0.851 / 0.967 / 0.985 |
 
 Reproduction is only "done" when these numbers are matched (within the fidelity criteria in Section 4, Phase 1) and saved under `results/batos_sibgrapi/`.
+
+> **Phase 1 status (2026-11-04): CLOSED, tag `batos-paper-v2-frozen`.** The frozen E-series code, run verbatim
+> (`python -I -m batos_v2.frozen --crop-id <id>`, then `python -I scripts/aggregate_sibgrapi.py`), reproduces Table II on all
+> 12 crops within ±0.0005 (ToS 0.8238 ± 0.3670, median 0.985, min 0.0121; sel 0.9063 ± 0.2099, min 0.2599; Otsu+WS
+> 0.8301 ± 0.1819; F1@0.75 0.8175 → 0.8992; sample SD). Gate fires only on both crop05 (2, 3); closest off 01_crop03 (17, 43);
+> ToS markers 53–405. Runs are deterministic (4 reruns bit-identical). v2 pooled F1@0.50 (seed-ignore, no filter): sel 0.9496,
+> ToS 0.9116; with filter 500: 0.9522 / 0.9351 (legacy 0.974 is a different pipeline). **Not yet reproduced:** Table IV sweeps,
+> Table V crop extent, Min-tree-core+WS baseline (0.768). Details: `docs/BA_TOS_BASELINE_REPRODUCTION.md`.
 
 > **Note on Table I of the paper (decided 2026-11-04).** Table I mixes two pipelines.
 > "Flattening λxy = 15" and "Mask Otsu offset −10 / closing 1 voxel" describe the **legacy May-2026

@@ -6,7 +6,7 @@ Per crop (from C:\\BA_TOS_DATA\\runs\\batos_paper_v2_frozen\\<crop_id>):
      BA-TOS_ToS (e11/watershed: tos_e11_min), the Otsu+WS control (edt_otsu) and
      BA-TOS_sel (e23c/watershed: batos_selective).
   2. Same evaluation after the legacy prediction size filter (recovered
-     filter_predicted_labels_by_size.py --min-size 500 --relabel, verbatim), labelled size_filter=500.
+     filter_predicted_labels_by_size.py --min-size 500, verbatim, IDs preserved), labelled size_filter=500.
   3. Check that 0.50/0.75 from the wrapper equal the plain e09b run, and that ToS and sel segmentations are
      bitwise identical on gate-negative crops.
 Outputs: per_crop_metrics.csv, crop_macro_summary.csv, pooled_object_summary.csv, table2_comparison.csv,
@@ -79,8 +79,12 @@ def evaluate(crop: str, route: str, size_filter: str) -> pd.DataFrame:
     if size_filter == "none":
         shutil.copy2(seg, e09_dir / "segmentations" / f"{configuration}.tif")
     else:
+        # No --relabel: e09b's seed/overlap-ignore treats prediction label == marker label (the watershed
+        # keeps marker IDs). Sequential relabelling breaks that link and corrupts the ignore sets (observed
+        # 2026-11-04: ToS crop04 0.985 -> 0.726 with only 4 objects removed). Without it the filter only
+        # zeroes objects < min-size and keeps all other IDs.
         call([FILTER, "--labels", seg, "--out-dir", work / "filter", "--prefix", configuration,
-              "--min-size", size_filter, "--relabel"])
+              "--min-size", size_filter])
         shutil.copy2(work / "filter" / f"{configuration}_min{size_filter}_labels.tif",
                      e09_dir / "segmentations" / f"{configuration}.tif")
     row.to_csv(e09_dir / "watershed_results.csv", index=False)

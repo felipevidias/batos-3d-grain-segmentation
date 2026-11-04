@@ -350,3 +350,45 @@ Sources: `C:\BA_TOS_DATA\linux_import\chat_recovered\` (README read) and `zsh_re
   3. the true-dual selector itself (polarity-aware |height|, intensity score, hierarchy suppression; the legacy selector we ported is sign-sensitive to higra's direction flip).
 - BG10 is answered: the E-series numbers are **without** a prediction size filter.
 - The remaining 8 crops (00/01 crop02, 03, 06, 07) were not run, per instruction.
+
+---
+
+## 2026-11-04 — Session 8: Phase 1 closure — Table II reproduced on all 12 crops
+
+### Runs
+- **Primary runs.** The remaining 8 crops (00/01 crop02, 03, 06, 07) were run with `python -I -m batos_v2.frozen` into `C:\BA_TOS_DATA\runs\batos_paper_v2_frozen`, all rc 0, 317–455 s per crop. Code commit `6aafcc8`, clean.
+- **Determinism.** 00/01 crop04 and 00/01 crop05 were rerun into `..._frozen_rerun`. e09b CSVs and ToS/sel segmentations are byte-identical to the originals.
+- **Memory bug.** `frozen.py`'s first peak-memory capture measured only the venv `python.exe` launcher (about 4.7 MB per stage; on Windows the interpreter is a child process). Fixed in `ab1982f` (max `peak_wset` over the process tree, recorded as `peak_memory_method`).
+- **Memory reruns.** All 12 crops were rerun into `..._frozen_mem` for memory only. Results are byte-identical to the primary runs on all 12, so the pipeline is deterministic.
+  - Peak memory is 3.31–4.78 GB per crop, driven by openrec_v2; ToS/spatialize take about 3.1 GB.
+  - `git.dirty = True` in those records is due only to uncommitted doc edits (CLAUDE.md, the reproduction doc) and the aggregator's `--relabel` fix. No pipeline code was modified.
+- **Runtime source.** `results/all_runs.csv` takes runtime from the primary runs (sequential, uncontended) and memory from the memory runs.
+
+### Aggregation (`scripts/aggregate_sibgrapi.py` → `results/batos_sibgrapi/`)
+- **Method.** Frozen e09b unmodified. IoU 0.25 is added by `scripts/e09b_with_iou025.py`, which only overrides the default threshold tuple; its 0.50/0.75 output equals the plain e09b run on all 12 crops (`checks.csv`). Primary protocol: seed_ignore.
+- **Table II (crop-macro, no size filter, sample SD).** All statistics are within ±0.0005:
+  - ToS 0.8238 ± 0.3670, median 0.9850, min 0.0121, F1@0.75 0.8175 (paper 0.824 ± 0.367 / 0.985 / 0.012 / 0.817).
+  - sel 0.9063 ± 0.2099, median 0.9850, min 0.2599, F1@0.75 0.8992 (paper 0.906 ± 0.210 / 0.985 / 0.260 / 0.899).
+  - Otsu+WS 0.8301 ± 0.1819, median 0.8816, min 0.2599, F1@0.75 0.7698 (paper 0.830 ± 0.182 / 0.882 / 0.260 / 0.770).
+  - The paper's SD is the sample SD; population SDs are 0.008–0.016 lower.
+- **Gate.** It fires on 00_crop05 and 01_crop05 only, both (2, 3). The closest non-triggered crop is 01_crop03 at (17, 43). ToS and sel segmentations are bitwise identical on the 10 gate-negative crops.
+- **ToS markers per crop.** 53–405.
+- **Pooled object (seed_ignore, F1@0.50).**
+
+  | Route | No filter | Filter 500 (labelled) |
+  |---|---|---|
+  | sel | **0.9496** (TP 2630, FP 101, FN 178, P 0.963, R 0.937) | 0.9522 (FP 86) |
+  | ToS | 0.9116 (P 0.932, R 0.892) | 0.9351 (FP 45) |
+  | Otsu+WS | 0.8657 | 0.8657 (no object < 500) |
+
+  - The legacy 0.974 (May pipeline) is not comparable; it is reported alongside, not as a target.
+- **Over-segmentation ratio (pred_eval / valid GT, pooled, no filter).** sel 0.973, ToS 0.957, Otsu+WS 1.095.
+- **Size filter.** Without `--relabel`, the filter removes only FPs (TP unchanged everywhere).
+  - Table II matches **filter off** (filtered ToS mean 0.8297, min 0.0153), so the published E-series numbers did not use it (BG10 confirmed on 12 crops).
+  - A first aggregation with `--relabel` was **discarded**: e09b links predictions to seeds by label value, and relabelling corrupted the seed-ignore sets (ToS crop04 0.726 with 4 objects removed).
+- **Not compared.** Min-tree-core+WS (0.768, E14 control not run), Table IV sweeps, Table V crop extent.
+
+### Bookkeeping
+- `results/all_runs.csv` now holds the 72 frozen rows: 12 crops × 3 routes × filter on/off, with runtime and peak memory. The previous Phase 1c port rows were moved to `results/all_runs_phase1c_port.csv`.
+- CLAUDE.md §2 (filter row, Phase 1 status) and `docs/BA_TOS_BASELINE_REPRODUCTION.md` were updated.
+- Tag `batos-paper-v2-frozen`.
