@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "batos-v2"
+version = "0.1.0"
+description = "batos-paper-v2: E-series reconstruction of the SIBGRAPI 2026 BA-TOS pipeline"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["batos_v2*"]

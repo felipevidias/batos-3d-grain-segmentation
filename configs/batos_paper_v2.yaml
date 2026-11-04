@@ -1,0 +1,102 @@
+# batos-paper-v2: E-series reconstruction of the SIBGRAPI 2026 BA-TOS pipeline.
+# Every reconstructed (not recovered) choice is marked BGn; see docs/BATOS_PAPER_V2_SPEC.md §3b.
+preset: batos-paper-v2
+
+paths:
+  crops_metadata: data/metadata/crops_sibgrapi.json
+  crops_root: C:\BA_TOS_DATA\crops
+  runs_root: C:\BA_TOS_DATA\runs\batos_paper_v2
+
+scale:                     # BG1: port of e13_estimate_scale.py (GT-free)
+  method: e13
+
+openrec:                   # opening-by-reconstruction flattening (batos_preprocess_opening_reconstruction_v2.py is lost)
+  radius: auto             # BG2: auto -> max(radius_min, round(radius_factor * R_hat)); or an int
+  radius_factor: 1.5
+  radius_min: 8
+  operation: opening       # BG5: opening | closing
+  footprint: ball_sequence # BG3: skimage ball(r, decomposition='sequence') (exact ball is infeasible at r~22)
+  mode: subtract_background  # BG4: subtract_background (I - B + median(B)) | reconstructed_image (B)
+  input: raw               # BG7: raw uint16 crop
+  robust_percentiles: [0.5, 99.5]
+
+selector:                  # BG6: batos_preprocess.flatten_volume_u8 with lambda 1 on the openrec image
+  lambda_xy: 1.0
+  sigma_z: 0.0
+
+boundary:                  # recovered: batos_background.py (internal_dark = dark not 6-connected to any face)
+  dark_percentile: 40
+  otsu_offset: -10
+  dark_threshold_max: 135
+  connectivity: 1
+  reject_node_touching_face: false   # extra literal C∩∂Ω test on the ToS node region (off: E-series used internal_dark)
+
+tos:                       # port of batos_tos_seed.py (pilot branch) + true-dual split
+  height_factor: 0.012
+  area_factor: 22.0
+  area_min: 2
+  area_max: 2200
+  delta_parent_min: 0
+  dark_percentile_max: 78.0
+  support_area_min: 20
+  support_area_max: 45000
+  support_max_steps: 16
+  support_area_ratio_preferred: 18.0
+  support_area_ratio_width: 80.0
+  support_contrast_norm: 80.0
+  delta_norm: 20.0
+  area_preferred_position: 0.42
+  area_preferred_width: 0.55
+  w_height: 0.22
+  w_delta: 0.12
+  w_area: 0.18
+  w_dark: 0.18
+  w_support: 0.30
+  min_score: 0.35
+  k_total: 3600
+  k_split: half            # BG8: half -> top K/2 MIN-like + top K/2 MAX-like, ranked separately
+  point_mode: medial       # BG12: medial (max in-region EDT voxel) | centroid_snapped
+  support_set: all         # BG9: exclusive supports relative to all selected nodes (all) or MIN only (min)
+
+markers:                   # recovered: e11_build_markers_ablation.py
+  polarity: min
+  nms_radius: 6.0
+  edt_priority_weight: 0.20
+  min_priority_bonus: 0.05
+
+baseline_markers:          # recovered: batos_markers.py flags from run_batos_pipeline.sh (mask union only)
+  connectivity: 1
+  area_min: 3
+  area_max: 900
+  max_dim: 30
+  max_elongation: 8.0
+  min_fill: 0.005
+  center_radius: 2
+  ring_inner: 4
+  ring_outer: 10
+  center_dark_max: 205.0
+  min_ring_contrast: -2.0
+  nms_min_dist: 7.0
+  max_markers: 420
+
+gate:                      # recovered: e23b/e23c
+  median_max: 3.0
+  q75_max: 4.0
+  fallback: edt_otsu_matched_count
+  edt_nms_radius: 6.0
+
+watershed:                 # recovered: e11_run_fixed_mask_watershed.py
+  mask_min_component: 500
+  closing_iterations: 1
+  fill_holes: true
+  union_markers: [tos_min, baseline_existing]
+  connectivity: 1
+
+size_filter:               # BG10: unknown whether used in the published E-series numbers -> evaluate both
+  modes: [500, off]
+
+eval:                      # BG11: seed-ignore per paper §III-C
+  iou_thresholds: [0.25, 0.50, 0.75]
+  min_gt_voxels: 1000
+  exclude_face_touching: true
+  domain: exclude_ignored_gt   # exclude_ignored_gt (as e12) | full
