@@ -54,6 +54,10 @@ SCRIPTS = {
     "e11_watershed": CHAT / "e11_run_fixed_mask_watershed.py",
     "e09b": CHAT / "e09b_ignore_aware_audit.py",
     "e23c_route": LI / "linux_patches/e23c_selective_router_bundle/e23c_build_selective_marker_route.py",
+    # Phase 1e (batos_v2.reproduce_tables)
+    "e14_mintree": CHAT / "e14_build_mintree_candidates.py",
+    "e15_suite": LI / "linux_patches/BA_TOS_E13_E16_conditional_acceptance/audit/e15_make_crop_size_suite.py",
+    "e09b_iou025": REPO_ROOT / "scripts/e09b_with_iou025.py",
 }
 
 # run_batos_pipeline.sh (recovered) step flags
@@ -157,10 +161,16 @@ def main(argv=None) -> int:
     parser.add_argument("--crop-id", required=True)
     parser.add_argument("--runs-root", type=Path, default=Path(r"C:\BA_TOS_DATA\runs\batos_paper_v2_frozen"))
     parser.add_argument("--skip-route", action="store_true")
+    # E15 crop-size sub-crops (not in crops_sibgrapi.json): explicit inputs + frozen parent params
+    # (e15_make_crop_size_suite.py output); the scale stage is then skipped, as in run_e15_crop_size_sensitivity.sh.
+    parser.add_argument("--gray", type=Path)
+    parser.add_argument("--gt", type=Path)
+    parser.add_argument("--params-json", type=Path)
     args = parser.parse_args(argv)
+    custom = [args.gray, args.gt, args.params_json]
+    if any(custom) and not all(custom):
+        parser.error("--gray, --gt and --params-json must be given together")
 
-    meta = json.loads((REPO_ROOT / "data/metadata/crops_sibgrapi.json").read_text(encoding="utf-8"))
-    crop = next(c for c in meta["crops"] if c["crop_id"] == args.crop_id)
     root = args.runs_root
     out = root / args.crop_id
     if (out / "frozen_run.json").exists():
@@ -169,11 +179,20 @@ def main(argv=None) -> int:
     run = Runner(out / "frozen_commands.log")
     t_start = time.time()
     cid = args.crop_id
-    gray, gt = Path(crop["gray_crop_path"]), Path(crop["gt_path"])
 
-    # 0 scale (shared across crops)
-    params_dir = scale_params(meta, root / "_scale", run)
-    params = json.loads((params_dir / f"{cid}_auto_params.json").read_text(encoding="utf-8"))
+    if all(custom):
+        gray, gt = args.gray, args.gt
+        for path in custom:
+            if not path.is_file():
+                raise FileNotFoundError(path)
+        params = json.loads(args.params_json.read_text(encoding="utf-8"))
+    else:
+        meta = json.loads((REPO_ROOT / "data/metadata/crops_sibgrapi.json").read_text(encoding="utf-8"))
+        crop = next(c for c in meta["crops"] if c["crop_id"] == args.crop_id)
+        gray, gt = Path(crop["gray_crop_path"]), Path(crop["gt_path"])
+        # 0 scale (shared across crops)
+        params_dir = scale_params(meta, root / "_scale", run)
+        params = json.loads((params_dir / f"{cid}_auto_params.json").read_text(encoding="utf-8"))
     radius, min_size = int(params["openrec_radius"]), int(params["min_predicted_size"])
 
     # 1 openrec v2 (E13: --prefix crop_id)
