@@ -154,3 +154,60 @@ Four modules are identical and three differ only by docstrings, shebangs or impo
 ### Repository
 - `.gitignore`: `data/` → `data/*` + `!data/metadata/`. `data/raw` and `data/crops` stay ignored, and `*.tif` stays ignored globally (checked with `git check-ignore`).
 - Committed on new branch `journal-extension` (see the git log for the hash) and pushed to origin. `main` is untouched. The camera-ready PDF in `paper/` was not committed (not on the requested list).
+
+---
+
+## 2026-11-04 — Session 4: Phase 1c, batos-paper-v2 implementation + development-crop run
+
+### Housekeeping
+- `paper/batos_sibgrapi_2026_camera_ready.pdf` committed (`5d25332`).
+- `docs/BA_TOS_BASELINE_REPRODUCTION.md` written (frozen E-series pipeline, recovered vs reconstructed BG1–BG12, fidelity targets, one-crop command).
+
+### Implementation (`src/batos_v2/`, branch `journal-extension`, one commit per stage)
+| Commit | Module | Content |
+|---|---|---|
+| `76d25ae` | `preprocess.py` (+ config, pyproject, common) | exact e13 scale estimate; openrec background subtraction (BG2–5, 7); exact λ flattening |
+| `2acc263` | `tos_select.py` | exact batos_background internal_dark; batos_tos_seed.py port (vectorized prefilter, same semantics) + true-dual split (BG8); spatialization (BG9 exclusive supports via top-down propagation; BG12 medial point); exact E11 markers |
+| `7aa02ff` | `gate.py` | exact e23b/c gate + routing; exact E11 EDT-Otsu matched-count markers |
+| `f32673c` | `watershed.py` | exact E11 fixed-mask watershed; exact batos_markers baseline (mask union only); size filter 500/off (ids kept) |
+| `e6c4ace` | `evaluate.py` | seed-ignore per §III-C (ignored iff all seed voxels in excluded references), strict (e12) secondary; bipartite matching; pooled and crop-macro summaries in separate files |
+| `d8221cf` | `run_crop.py` | orchestration, run.json provenance, results/all_runs.csv |
+
+- New things added: `pyproject.toml` (editable install into the venv so `python -I -m batos_v2...` works). In the config, `size_filter.modes: [500, "off"]` must be quoted because PyYAML reads a bare `off` as `False`.
+- Tests: 18 unit tests on synthetic volumes, all passing (`python -I -m unittest discover -s tests -t .`). They include a brute-force check of the exclusive-support propagation. The synthetic end-to-end run is a plumbing test only (24 markers for 64 synthetic grains; not tuned).
+- Before running: on crop04, the r = 22 opening-by-reconstruction background is nearly constant (p5 = p50 = p95 = 15312). So BG4 `reconstructed_image` would give a flat image, and `subtract_background` (≈ offset + robust u8) is the only viable reading.
+
+### Run: EFRGP01_00_crop04 (development crop only)
+Command: `C:\BA_TOS_DATA\envs\batos-py312\Scripts\python.exe -I -m batos_v2.run_crop --crop-id EFRGP01_00_crop04 --config configs/batos_paper_v2.yaml` at commit `d8221cf` (clean tree). Output in `C:\BA_TOS_DATA\runs\batos_paper_v2\EFRGP01_00_crop04\` (run.json). Runtime 96 s, peak memory 3.1 GB.
+
+Stage log:
+- R̂ = 10.20, so openrec r = 15. For comparison, the valid-GT median volume of 12,297 voxels corresponds to an equivalent radius of 14.3.
+- Boundary: dark threshold 110; internal_dark has 74,132 voxels in 20,312 components.
+- ToS: 9,331,331 nodes, built in 67 s. MIN-like candidates scored ≥ τs: **1,938**. MAX-like: 455,896. Selected 1,800 MIN + 1,800 MAX.
+- Markers: 256 consolidated → **255 after NMS** (the paper's per-crop range is 53–405).
+- Gate: m_v = 13, q_v = 27 → **not triggered** (correct; paper's closest non-triggered crop is 17/43).
+
+**Results (seed-ignore, primary):**
+| method | size filter | F1@0.25 | F1@0.50 | F1@0.75 | P@0.50 | R@0.50 | n_pred_eval / valid GT |
+|---|---|---|---|---|---|---|---|
+| batos_tos (= batos_sel, gate false) | 500 | 0.734 | **0.559** | **0.491** | 0.721 | 0.456 | 172 / 272 |
+| batos_tos (= batos_sel) | off | 0.734 | 0.559 | 0.491 | 0.721 | 0.456 | 172 / 272 |
+| edt_otsu control | 500 / off | 0.859 | 0.697 | 0.672 | 0.800 | 0.618 | 210 / 272 |
+
+Strict protocol: batos_tos F1@0.50 = 0.496; edt_otsu = 0.657. The size filter changes nothing on this crop: no evaluated basin is below 500 voxels, and only ignored ones differ (68 vs 83 ignored).
+
+**Target: F1@0.50 ≈ 0.985, F1@0.75 ≈ 0.978 → NOT MET (−0.43 / −0.49).** No parameter was changed after seeing these numbers.
+
+### Where the reconstruction diverges (read-only diagnostic on the run outputs; nothing tuned)
+1. **Mask, relief and watershed are not the problem.** Frozen mask vs GT foreground: precision 0.988, recall 0.947 (mask fraction 0.647; GT foreground 0.675).
+2. **The markers are clean but too few.** All 255 ToS markers lie in grains (172 on valid GT, 83 on excluded border/small GT, 0 on background), none duplicated. But only **172 of 272 valid grains get a marker**, so recall is capped at 0.63. Unseeded grains are absorbed into neighbours' basins, giving merges and IoU < 0.5, which costs precision too.
+3. **The cause is the ToS MIN candidate pool.** Only 1,938 MIN-like nodes pass scoring. 62 % of the 1,800 kept have their point on background (inter-grain dark), and they reach only 172 distinct valid grains. The internal_dark mask is not limiting: it touches all 272 valid grains.
+4. **This contradicts the paper's K sweep.** F1 rises from K = 3600 to 7200 (0.985 → 0.998), so the original MIN pool must have exceeded 3,600 eligible nodes (≥ 1,800 per half). Ours would saturate at 1,938. Our F1 of 0.559 sits in the paper's K = 900–1800 band (0.510–0.833), the signature of candidate starvation.
+5. Ranked suspects (all in reconstructed or unverifiable steps):
+   - (a) **Selector image (BG3–5, BG6 interplay):** with B ≈ constant, our selector ≈ a λ = 1 high-pass of the raw crop. If the lost openrec script produced a materially different image, the ToS changes completely. This is the main suspect.
+   - (b) **True-dual scoring (BG8):** the lost script may compute MIN statistics (avg area, max height, dark percentile) differently from the legacy script, or apply K before the score threshold.
+   - (c) **Representative point (BG12):** 62 % of MIN points fall on background. A different point rule (e.g. a deepest-voxel point) would change internal-component eligibility.
+   - (d) **Scale estimate:** R̂ = 10.2 vs ~14.3 (r = 15 instead of ~21). Low impact here, because B is near-constant at either radius.
+6. Partial evidence of correct plumbing: the EDT-Otsu control under the same mask reaches 0.697 here. Paper Table II's Otsu+WS crop-macro mean is 0.830, so the shared mask/EDT path is also somewhat below the paper on this crop, consistent with the openrec/flat image (suspect a) differing too.
+
+Status: Phase 1c implementation complete. Fidelity is **not** reached on the development crop. The other 11 crops were not run.
