@@ -93,7 +93,7 @@ watershed:                 # recovered: e11_run_fixed_mask_watershed.py
   connectivity: 1
 
 size_filter:               # BG10: unknown whether used in the published E-series numbers -> evaluate both
-  modes: [500, off]
+  modes: [500, "off"]
 
 eval:                      # BG11: seed-ignore per paper §III-C
   iou_thresholds: [0.25, 0.50, 0.75]
