@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "description": "The 12 SIBGRAPI 2026 BA-TOS evaluation crops (6 origins x 2 scans). Origins copied from CLAUDE.md Section 2; they match CROP_MAP in linux_patches/BA_TOS_E13_E16_conditional_acceptance/audit/e13_build_12crop_manifest.py and the run_one calls in scripts/run_second_scan_EFRGP01_01_selected_crops.sh.",
+  "created": "2026-11-04",
+  "source_volumes": {
+    "EFRGP01_00": {
+      "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFR\\Greyscale\\EFRGP01_00.tif",
+      "gray_path_alt": null,
+      "shape_zyx": [
+        1600,
+        1400,
+        1400
+      ],
+      "dtype": "uint16",
+      "format": "BigTIFF, uncompressed, 1600 pages",
+      "note": "Q8 corrected 2026-11-04: the Desktop\\BATOS_DATA copy is NOT greyscale. It is byte-identical to the GT label volume extracted from EFR_labels.7z (C:\\BA_TOS_DATA\\gt_full). Do not use it as greyscale.",
+      "size_bytes_canonical": 6272409728,
+      "pixel_sha256_canonical": "4c6bfbf26f38ed37b51ba13e7d31076f9426397b74ec60a72a9ca0ef89ca0d26",
+      "gt_full_path": "C:\\BA_TOS_DATA\\gt_full\\EFRGP01_00.tif",
+      "desktop_copy_is_gt_labels": "C:\\Users\\USER\\Desktop\\BATOS_DATA\\EFRGP01_00.tif",
+      "gt_pixel_sha256": "72b4e1a2dc132b7a81bb206af6adf396df2b1f95a5d0da94162bb5091d75a612",
+      "gt_shape_zyx": [
+        1600,
+        1400,
+        1400
+      ],
+      "gt_dtype": "uint16"
+    },
+    "EFRGP01_01": {
+      "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFR\\Greyscale\\EFRGP01_01.tif",
+      "gray_path_alt": null,
+      "shape_zyx": [
+        1600,
+        1400,
+        1400
+      ],
+      "dtype": "uint16",
+      "format": "BigTIFF, uncompressed, 1600 pages",
+      "note": "Q8 corrected 2026-11-04: the Desktop\\BATOS_DATA copy is NOT greyscale. It is byte-identical to the GT label volume extracted from EFR_labels.7z (C:\\BA_TOS_DATA\\gt_full). Do not use it as greyscale.",
+      "size_bytes_canonical": 6272409728,
+      "pixel_sha256_canonical": "a20509ac2f4699550e175c89de6dfe97abb3f1476b6f2708bee265fe2e46bce2",
+      "gt_full_path": "C:\\BA_TOS_DATA\\gt_full\\EFRGP01_01.tif",
+      "desktop_copy_is_gt_labels": "C:\\Users\\USER\\Desktop\\BATOS_DATA\\EFRGP01_01.tif",
+      "gt_pixel_sha256": "8ee4d23f25a03a99e207ef7ef973e637214b7b296c22b0d828b3513e9fde4d72",
+      "gt_shape_zyx": [
+        1600,
+        1400,
+        1400
+      ],
+      "gt_dtype": "uint16"
+    },
+    "gt_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFR\\Label\\EFR_labels.7z",
+    "gt_full_dir": "C:\\BA_TOS_DATA\\gt_full"
+  },
+  "voxel_pitch_um": 100,
+  "voxel_pitch_source": "paper Sec. II-F citing Pinzon et al. 2025 ('approximately 100 um/voxel'); not yet confirmed from acquisition metadata",
+  "crop_convention": {
+    "size": 200,
+    "axis_order": "zyx",
+    "slicing_status": "verified",
+    "slicing_evidence": [
+      "CODE (supports zyx): origin/batos-ls-auto-tile-pilot:CodeReport_LysandreMacke/code/segmentation/batos/batos_make_paired_crop.py slices tifffile.memmap(...)[z0:z1, y0:y1, x0:x1] from --x --y --z; this is the script that cut the historical crops (scripts/run_second_scan_EFRGP01_01_selected_crops.sh).",
+      "EMPIRICAL Q7 (inconclusive, 2026-11-04): Desktop/batos codigos/lysandre_code/experiments/crops/crop_600_800_300_200.tif (200^3 uint8) matches NO window of EFRGP01_00/01 (Downloads or Desktop copies) at origin (600,800,300) under any of 6 axis orders x 6 transposes (max corr 0.016). That file is not a crop of these scans at that origin; it cannot settle Q7. (Superseded by the GT-count verification.)",
+      "PROPOSED CHECK: after GT extraction, run scripts/make_crops.py --probe-axis-orders and compare valid-GT counts per crop with historical_gt_valid_legacy below (sum 2808)."
+    ],
+    "gray_written": "raw dtype (uint16) window, as batos_make_paired_crop.py *_gray_crop.tif",
+    "gt_validity": "GT labels < 1000 voxels or touching any crop face are excluded from evaluation",
+    "slicing": "vol[z:z+size, y:y+size, x:x+size] on the (Z,Y,X) volume",
+    "verification": "2026-11-04: scripts/make_crops.py --probe-axis-orders on C:\\BA_TOS_DATA\\gt_full GT. zyx reproduces all 12 historical gt_valid counts exactly (265/216/272/129/271/263; 262/213/264/128/265/260; sum 2808). Next best (zxy) matches 2/12 (crop04 of both scans only)."
+  },
+  "roles": {
+    "development": "EFRGP01_00_crop04",
+    "frozen_temporal_holdout": "EFRGP01_01_crop04"
+  },
+  "crops": [
+    {
+      "crop_id": "EFRGP01_00_crop02",
+      "scan": "EFRGP01_00",
+      "crop": "crop02",
+      "x": 600,
+      "y": 800,
+      "z": 300,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop02\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop02\\gray.tif",
+      "historical_gt_valid_legacy": 265
+    },
+    {
+      "crop_id": "EFRGP01_00_crop03",
+      "scan": "EFRGP01_00",
+      "crop": "crop03",
+      "x": 900,
+      "y": 600,
+      "z": 300,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop03\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop03\\gray.tif",
+      "historical_gt_valid_legacy": 216
+    },
+    {
+      "crop_id": "EFRGP01_00_crop04",
+      "scan": "EFRGP01_00",
+      "crop": "crop04",
+      "x": 500,
+      "y": 500,
+      "z": 700,
+      "size": 200,
+      "role": "development",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop04\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop04\\gray.tif",
+      "historical_gt_valid_legacy": 272
+    },
+    {
+      "crop_id": "EFRGP01_00_crop05",
+      "scan": "EFRGP01_00",
+      "crop": "crop05",
+      "x": 800,
+      "y": 900,
+      "z": 700,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": true,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop05\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop05\\gray.tif",
+      "historical_gt_valid_legacy": 129
+    },
+    {
+      "crop_id": "EFRGP01_00_crop06",
+      "scan": "EFRGP01_00",
+      "crop": "crop06",
+      "x": 350,
+      "y": 650,
+      "z": 500,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop06\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop06\\gray.tif",
+      "historical_gt_valid_legacy": 271
+    },
+    {
+      "crop_id": "EFRGP01_00_crop07",
+      "scan": "EFRGP01_00",
+      "crop": "crop07",
+      "x": 700,
+      "y": 400,
+      "z": 500,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop07\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_00_crop07\\gray.tif",
+      "historical_gt_valid_legacy": 263
+    },
+    {
+      "crop_id": "EFRGP01_01_crop02",
+      "scan": "EFRGP01_01",
+      "crop": "crop02",
+      "x": 600,
+      "y": 800,
+      "z": 300,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop02\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop02\\gray.tif",
+      "historical_gt_valid_legacy": 262
+    },
+    {
+      "crop_id": "EFRGP01_01_crop03",
+      "scan": "EFRGP01_01",
+      "crop": "crop03",
+      "x": 900,
+      "y": 600,
+      "z": 300,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop03\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop03\\gray.tif",
+      "historical_gt_valid_legacy": 213
+    },
+    {
+      "crop_id": "EFRGP01_01_crop04",
+      "scan": "EFRGP01_01",
+      "crop": "crop04",
+      "x": 500,
+      "y": 500,
+      "z": 700,
+      "size": 200,
+      "role": "frozen_temporal_holdout",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop04\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop04\\gray.tif",
+      "historical_gt_valid_legacy": 264
+    },
+    {
+      "crop_id": "EFRGP01_01_crop05",
+      "scan": "EFRGP01_01",
+      "crop": "crop05",
+      "x": 800,
+      "y": 900,
+      "z": 700,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": true,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop05\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop05\\gray.tif",
+      "historical_gt_valid_legacy": 128
+    },
+    {
+      "crop_id": "EFRGP01_01_crop06",
+      "scan": "EFRGP01_01",
+      "crop": "crop06",
+      "x": 350,
+      "y": 650,
+      "z": 500,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop06\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop06\\gray.tif",
+      "historical_gt_valid_legacy": 265
+    },
+    {
+      "crop_id": "EFRGP01_01_crop07",
+      "scan": "EFRGP01_01",
+      "crop": "crop07",
+      "x": 700,
+      "y": 400,
+      "z": 500,
+      "size": 200,
+      "role": "retrospective",
+      "gate_expected": false,
+      "gt_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop07\\labels.tif",
+      "gray_crop_path": "C:\\BA_TOS_DATA\\crops\\EFRGP01_01_crop07\\gray.tif",
+      "historical_gt_valid_legacy": 260
+    }
+  ],
+  "modified": "2026-11-04",
+  "historical_gt_valid_source": "origin/batos-ls-auto-tile-pilot: CodeReport_LysandreMacke/results_batos/paper_tables/batos_local_split_auto/*/crop*/metrics_iou_0p50/*_instance_metrics.csv (column gt_valid; legacy batos_instance_metrics.py --min-gt-area 1000 --ignore-gt-border)"
+}
