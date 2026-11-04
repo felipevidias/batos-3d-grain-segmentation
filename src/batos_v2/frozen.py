@@ -106,12 +106,22 @@ class Runner:
         with open(self.log_path, "a", encoding="utf-8") as log:
             log.write(f"\n$ {subprocess.list2cmdline(cmd)}\n")
             log.flush()
-            done = subprocess.run(cmd, cwd=cwd, stdout=log, stderr=subprocess.STDOUT)
+            import psutil
+            proc = psutil.Popen(cmd, cwd=cwd, stdout=log, stderr=subprocess.STDOUT)
+            peak = 0
+            while proc.poll() is None:  # peak working set of the stage subprocess (Windows: peak_wset)
+                try:
+                    info = proc.memory_info()
+                    peak = max(peak, getattr(info, "peak_wset", 0) or info.rss)
+                except psutil.Error:
+                    pass
+                time.sleep(0.2)
+            returncode = proc.returncode
         self.steps.append({"step": name, "script": str(script), "sha256": sha256(script),
                            "command": subprocess.list2cmdline(cmd), "seconds": round(time.time() - t0, 1),
-                           "returncode": done.returncode})
-        print(f"[frozen] {name}: rc={done.returncode} ({time.time() - t0:.0f}s)", flush=True)
-        if done.returncode != 0:
+                           "peak_memory_mb": round(peak / 2 ** 20, 1), "returncode": returncode})
+        print(f"[frozen] {name}: rc={returncode} ({time.time() - t0:.0f}s, peak {peak / 2 ** 20:.0f} MB)", flush=True)
+        if returncode != 0:
             raise RuntimeError(f"{name} failed; see {self.log_path}")
 
 
@@ -238,6 +248,7 @@ def main(argv=None) -> int:
         "steps": run.steps, "route": route,
         "e09b_results": results.to_dict(orient="records"),
         "seconds_total": round(time.time() - t_start, 1),
+        "peak_memory_mb": max((s.get("peak_memory_mb", 0) for s in run.steps), default=None),
     }
     (out / "frozen_run.json").write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
     cols = [c for c in ("evaluation_protocol", "marker_source", "f1_iou025", "f1_iou050", "f1_iou075",
