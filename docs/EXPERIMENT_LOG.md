@@ -274,3 +274,19 @@ Evidence given by the author: the E13 README lists the frozen E11 settings ("K=3
 - **Pipeline change.** New module `src/batos_v2/recovered.py` calls both scripts as subprocesses (`-I`, unmodified; script SHA-256 recorded in tos_select.json / route.json). Config: `markers.implementation: e11_verbatim`, `gate.edt_implementation: e11_verbatim`, `paths.e11_audit_dir`. The port still runs and is stored as `markers_port*` with a `port_identical_to_verbatim` flag.
 - **Crop04 end-to-end check** (`S1_verbatim_markers_pipeline`): pool 1,938 · markers 255 · seeded 172/272 · F1@.50 0.559 · F1@.75 0.491 · gate 13/27. Both `port_identical_to_verbatim` flags are True.
 - **Consequence:** reproduction now reduces to producing the candidate CSV that `batos_tos_seed_true_dual.py` + `e10_spatialize_candidates_no_gt.py` produced: `node, polarity, score, point_z/y/x, has_reconstructed_region` (+ `region_voxels` for the gate). S2–S5 are pending author review of this S1 report.
+
+### S0: audit of the `--internal-source` mask on crop04 (read-only diagnostic; nothing tuned)
+- **Production in v2:** `batos_v2.tos_select.internal_dark_mask`, an exact port of `batos_background.py` (compute_external_dark), on the selector image `EFRGP01_00_crop04_flatten_lambda1p0_8u.tif`. That image is the λ1 flattening of the openrec r15 image. Parameters as `run_batos_pipeline.sh` step 3: `--dark-percentile 40 --otsu-offset -10 --dark-threshold-max 135 --dark-connectivity 1`. Threshold = min(Otsu 120 − 10, P40 = 144, 135) = **110**. Dark voxels 1,400,845; border-connected (external) 1,326,713; **internal 74,132**.
+- **Cross-check with main:** the unmodified `src/batos/batos_background.py` (identical to `main`) was run on the same selector, with the openrec image as `original` and the C1 seed (the seed does not affect the mask), into `runs\batos_paper_v2_controls\S0_main_batos_background`. Output: the same threshold 110 and the **voxel-identical** internal mask.
+- **E13 expectations:** the mask is non-empty (the E13 validation rule passes). The selector name `*_flatten_lambda1p0_8u.tif` matches the λ1 folder convention, and no `lambda15p0` input is involved.
+- **Structure (6-connected, as the E11 builder labels it):**
+  - **20,312 components.** Median size 1 voxel; 14,979 are single voxels; p90 is 3 voxels; the largest is 142.
+  - Dominant GT label: valid grain 8,756 · excluded grain 4,884 · background 6,672.
+  - Components touching more than one valid grain: **13** (more than one GT label of any kind: 29).
+  - **Every one of the 272 valid grains contains components lying entirely inside it** (8,731 such components). Median per grain 31, min 15, max 77. Grains with no component voxel: **0**.
+- **Conclusion: the internal mask is not the limit.** Under one-marker-per-component, the structural ceiling is all 272 grains, with ≥ 15 candidate components each. Merging is negligible (13 shared components).
+- **Where the ceiling actually comes from:**
+  - Of the 1,800 selected MIN candidates, only **668 have their point inside an internal component**. They hit only **256 distinct components**, 173 of them dominated by valid grains.
+  - 8,583 grain-interior components receive no candidate point.
+  - The loss is in the ToS candidate points (S2–S4), not in the internal mask.
+- **Side observation:** the internal mask is mostly single-voxel speckle from the λ1 high-pass. A MIN point must coincide exactly with one of these specks to survive point-internal consolidation. That makes S4 (projection of the point into the nearest internal component) directly relevant.
