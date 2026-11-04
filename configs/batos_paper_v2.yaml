@@ -64,6 +64,10 @@ tos:                       # port of batos_tos_seed.py (pilot branch) + true-dua
   k_split: half            # BG8: half -> top K/2 MIN-like + top K/2 MAX-like, ranked separately
   point_mode: medial       # BG12: medial (max in-region EDT voxel) | centroid_snapped
   support_set: all         # BG9: exclusive supports relative to all selected nodes (all) or MIN only (min)
+  k_order: threshold_first # S2: threshold_first | k_first (identical on crop04 when >= K/2 MIN nodes pass tau_s)
+  height_direction: mean_padding_emulated  # S3b (adopted): higra 0.6.13 ignores padding='mean' in 3D ToS (root alt 0),
+                           # flipping the 'auto' height direction; emulate a true mean-padding root (auto | increasing | decreasing)
+  point_projection: none   # S4 (not adopted): none | nearest_internal (847 markers on crop04, outside the paper's 53-405)
 
 markers:                   # recovered: e11_build_markers_ablation.py
   implementation: e11_verbatim   # S1: run the recovered script unmodified (port kept as a cross-check)

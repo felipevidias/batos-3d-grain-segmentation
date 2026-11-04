@@ -239,6 +239,33 @@ Findings:
    - (b) The representative-point rule (BG12): 62 % of MIN points fall on inter-grain background and fail internal eligibility.
    - (c) The lost e10 spatialization's eligibility, which may project candidates into internal components rather than requiring the point inside one (E11 carries a `projection_distance` column, always 0 in the recovered builder).
 
+## 3d. Round 2 on crop04: marker stage, internal mask, selector, spatialisation (2026-11-04)
+
+| Run | Factor (one at a time vs v2 unless stated) | MIN pool ≥ τs | Markers | Seeded /272 | F1@.50 (500 / off) | F1@.75 (500) |
+|---|---|---|---|---|---|---|
+| S1 | marker + EDT-Otsu stages = recovered E11 scripts run **verbatim** | 1,938 | 255 | 172 | 0.559 / 0.559 | 0.491 |
+| H6 | openrec output replaces the image (r = 15) | 3,136 | 215 | 0 | 0.000 / 0.000 | 0.000 |
+| H7 | `min_size` = legacy prediction filter only (= 500 on crop04) | = v2 | = v2 | = v2 | 0.559 | 0.491 |
+| S2 | K applied before τs | 1,800 | 255 | 172 | 0.559 / 0.559 | 0.491 |
+| **S3b** | **height direction emulating a true mean-padding root** | **204,769** | 256 | 172 | 0.563 / 0.563 | 0.496 |
+| S4 | project point to nearest internal voxel | 1,938 | 847 | 223 | 0.658 / 0.333 | 0.603 |
+| S3b+S4 | both | 204,769 | 859 | 222 | 0.660 / 0.330 | 0.600 |
+
+Findings:
+1. **S1:** `e11_build_markers_ablation.py` and `e11_build_control_markers.py` run verbatim give labels identical to the port. They are now the marker stage (`src/batos_v2/recovered.py`). The builder reads only `node, polarity, score, point_z/y/x, has_reconstructed_region`. It hard-codes `projection_distance = 0`.
+2. **S0:** the internal-dark mask equals `main`'s `batos_background.py` voxel for voxel. It has 20,312 components (median size 1), and every valid grain contains ≥ 15 components lying entirely inside it. It is not the seeding ceiling.
+3. **H6 / H7:** at E13's own radius (r = 15 from the median-peak R̂ = 10.2), an opening-by-reconstruction *filter* erases all grains, so H6 is rejected. `min_size` is consumed only by `filter_predicted_labels_by_size.py` in the legacy route. No closing-by-reconstruction is hinted anywhere in the recovered code.
+4. **S3b, a library discrepancy (adopted).** In higra 0.6.13, `component_tree_tree_of_shapes_image3d` gives root altitude 0 with `padding='mean'`, identical to `'zero'`, although the border mean is 145.75.
+   - `hg.attribute_height(..., 'auto')` decides direction by `alt_root > min(non-leaf altitudes)`. That returns False, so MIN-like heights are negative (median −12).
+   - As a result, `h_score` = 0 and no MAX support is found for MIN nodes, and the MIN pool is starved (1,938 just above 0.35).
+   - Emulating the auto test with a true mean-padding root gives "increasing", which is the convention `batos_tos_seed.py` assumes (`max_min_height`, "MIN-like dark cores").
+   - **Independent confirmation:** with S3b the top-1,800 MIN set is identical for every τs in 0.25–0.45 (93,607 nodes still ≥ 0.45). That reproduces the paper's flat τs row in Table IV. Without S3b, τs = 0.40 leaves 33 nodes.
+   - **But F1 is unchanged (0.563).** The same ~172 grains are seeded, because the selected points still rarely land on the 1-voxel internal specks.
+5. **S4 (not adopted):** projection raises seeding to ~223 grains but yields 847 markers, outside the paper's 53–405. It depends on the 500 filter (0.658 vs 0.333 off), and the frozen builder never projects.
+6. **Status:** crop04 F1@0.50 = 0.563 with the frozen config vs the 0.985 target. Not reached. The gate stays non-triggered (12.5 / 27).
+   - The evidence now points at how candidate points meet the speckled internal mask. The λ1 high-pass makes the mask 1-voxel speckle, which is incompatible with the paper's Fig. 2 (compact internal markers).
+   - So either the original selector image differed from `batos_preprocess` λ = 1 of our openrec output, or the original Higra version also built a different tree on it. Both are outside what the recovered code can settle.
+
 ## 4. Environment plan
 
 **Status 2026-11-04: implemented (Phase 1b).** The venv `C:\BA_TOS_DATA\envs\batos-py312` (Python 3.12.10) is created and frozen to `environments/batos-py312.txt`. Higra 0.6.13 has a cp312 wheel, and a 3D ToS smoke test passed. The plan as originally written follows.

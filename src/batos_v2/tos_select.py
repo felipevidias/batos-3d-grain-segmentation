@@ -100,7 +100,21 @@ def score_candidates(image_u8: np.ndarray, cfg: dict[str, Any], log=print):
     parents = tree.parents().astype(np.int64)
     root = int(tree.root())
     area = hg.attribute_area(tree).astype(np.int64)
-    height = hg.attribute_height(tree, altitudes).astype(np.float64)
+    # S3b: Higra 0.6.13 ignores padding='mean' for 3D ToS (root altitude 0, identical to 'zero'), so the
+    # 'auto' direction test (alt_root > min non-leaf altitude) returns "decreasing" and MIN-like heights
+    # become negative. 'mean_padding_emulated' reproduces the auto test with a true mean-padding root.
+    direction = cfg.get("height_direction", "auto")
+    if direction == "auto":
+        increasing = "auto"
+    elif direction == "mean_padding_emulated":
+        border = np.concatenate([image_u8[0].ravel(), image_u8[-1].ravel(), image_u8[:, 0].ravel(),
+                                 image_u8[:, -1].ravel(), image_u8[:, :, 0].ravel(), image_u8[:, :, -1].ravel()])
+        increasing = bool(float(border.mean()) > float(altitudes[tree.num_leaves():].min()))
+    elif direction in ("increasing", "decreasing"):
+        increasing = direction == "increasing"
+    else:
+        raise ValueError(f"Unknown tos.height_direction {direction!r}")
+    height = hg.attribute_height(tree, altitudes, increasing_altitudes=increasing).astype(np.float64)
     n_nodes = len(parents)
     log(f"[tos] tree nodes={n_nodes} leaves={tree.num_leaves()} built in {time.time() - t0:.1f}s")
 
@@ -146,7 +160,9 @@ def score_candidates(image_u8: np.ndarray, cfg: dict[str, Any], log=print):
         partial = (cfg["w_height"] * h_score + cfg["w_delta"] * d_score + cfg["w_area"] * a_score
                    + cfg["w_dark"] * x_score)
         # support_score <= 1: nodes that cannot reach min_score even with full support are skipped (same result)
-        reachable = partial + cfg["w_support"] >= cfg["min_score"]
+        k_first = cfg.get("k_order", "threshold_first") == "k_first"   # S2
+        threshold = -np.inf if k_first else cfg["min_score"]
+        reachable = partial + cfg["w_support"] >= threshold
         rows = []
         for i in np.flatnonzero(reachable):
             node = int(nodes[i])
@@ -167,7 +183,7 @@ def score_candidates(image_u8: np.ndarray, cfg: dict[str, Any], log=print):
                 ds = min(1.0, max(0.0, 1.0 - (steps - 1) / max(1.0, cfg["support_max_steps"])))
                 s_score = 0.35 * sh + 0.30 * rs + 0.25 * cs + 0.10 * ds
             score = float(partial[i] + cfg["w_support"] * s_score)
-            if score < cfg["min_score"]:
+            if score < threshold:
                 continue
             rows.append({
                 "node": node, "polarity": polarity, "score": score, "area": int(area[node]),
@@ -181,6 +197,9 @@ def score_candidates(image_u8: np.ndarray, cfg: dict[str, Any], log=print):
             })
         # batos_tos_seed.py ordering: sort by (score, height, -area) descending, stable on node order
         rows.sort(key=lambda r: (r["score"], r["height"], -r["area"]), reverse=True)
+        if k_first:  # S2: cap each polarity at its K share over ALL scored nodes, then apply tau_s
+            cap = int(cfg["k_total"]) // 2 if polarity == "min" else int(cfg["k_total"]) - int(cfg["k_total"]) // 2
+            rows = [r for r in rows[:cap] if r["score"] >= cfg["min_score"]]
         return rows
 
     t1 = time.time()
@@ -201,6 +220,8 @@ def score_candidates(image_u8: np.ndarray, cfg: dict[str, Any], log=print):
         "max_min_height": max_min_height, "max_max_height": max_max_height,
         "avg_min_like_area": avg_min_area, "avg_max_like_area": avg_max_area,
         "dark_alt_max": dark_alt_max, "bright_alt_min": bright_alt_min,
+        "height_direction": direction, "height_increasing_used": increasing,
+        "root_altitude": int(altitudes[root]),
         "scoring_seconds": time.time() - t1,
     }
     log(f"[tos] scored MIN={len(min_rows)} MAX={len(max_rows)} -> selected "
@@ -222,6 +243,11 @@ def exclusive_support_voxels(tree, selected_nodes: np.ndarray) -> np.ndarray:
 
 def spatialize(tree, candidates: list[dict], shape, internal: np.ndarray, cfg: dict[str, Any]) -> pd.DataFrame:
     labels_internal, _ = ndi.label(internal, structure=CONNECTIVITY_6)
+    projection = cfg.get("point_projection", "none")                   # S4
+    if projection == "nearest_internal":
+        _, nearest = ndi.distance_transform_edt(~internal, return_indices=True)
+    elif projection != "none":
+        raise ValueError(f"Unknown tos.point_projection {projection!r}")
     n_leaves = tree.num_leaves()
     support_nodes = np.asarray([c["node"] for c in candidates
                                 if cfg["support_set"] == "all" or c["polarity"] == "min"], dtype=np.int64)
@@ -255,6 +281,11 @@ def spatialize(tree, candidates: list[dict], shape, internal: np.ndarray, cfg: d
             point = coords[int(np.argmin(((coords - centroid) ** 2).sum(axis=1)))]
         else:
             raise ValueError(f"Unknown tos.point_mode {cfg['point_mode']!r}")
+        original_point = np.asarray(point)
+        projection_distance = 0.0
+        if projection == "nearest_internal" and not internal[tuple(point)]:
+            point = nearest[:, point[0], point[1], point[2]]
+            projection_distance = float(np.sqrt(((point - original_point) ** 2).sum()))
         inside = internal[tuple(coords.T)]
         comps = labels_internal[tuple(coords.T)]
         comps = comps[comps > 0]
@@ -267,6 +298,8 @@ def spatialize(tree, candidates: list[dict], shape, internal: np.ndarray, cfg: d
         row.update(
             has_reconstructed_region=True,
             point_z=int(point[0]), point_y=int(point[1]), point_x=int(point[2]),
+            original_point_z=int(original_point[0]), original_point_y=int(original_point[1]),
+            original_point_x=int(original_point[2]), projection_distance=projection_distance,
             region_voxels=int(counts[node]),
             region_full_voxels=int(len(coords)),
             region_touches_volume_face=bool((lo <= 0).any() or (hi >= limits).any()),

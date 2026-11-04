@@ -290,3 +290,31 @@ Evidence given by the author: the E13 README lists the frozen E11 settings ("K=3
   - 8,583 grain-interior components receive no candidate point.
   - The loss is in the ToS candidate points (S2–S4), not in the internal mask.
 - **Side observation:** the internal mask is mostly single-voxel speckle from the λ1 high-pass. A MIN point must coincide exactly with one of these specks to survive point-internal consolidation. That makes S4 (projection of the point into the nearest internal component) directly relevant.
+
+### H6 / H7 / closing (preprocessing, authorised before S2–S5)
+- **H6** (`H6_openrec_filter_replaces_image`, openrec.mode=reconstructed_image, recovered radius r = max(8, round(1.5·R̂)) = 15; R̂ = 10.2 from the median of 1,500 EDT peaks; the p95 path is only a fallback for < 10 peaks):
+  - The opening by reconstruction is ~constant (p50 = p95 = 18689) and erases every grain.
+  - Internal mask: 97,622 voxels, 13,106 components, median size 1.
+  - Pool 3,136 · markers 215 · seeded **0** · F1 0.000 / 0.000. **Rejected.**
+- **H7:** `min_size` (`min_predicted_size`) is consumed only by `run_batos_pipeline.sh` arg 4 → `MIN_LABEL_SIZE` → `filter_predicted_labels_by_size.py --min-size` (legacy watershed output). It is not used in the background/internal mask or the candidates. `minimum_peak = max(2, P75)` is internal to the scale estimator (already exact). For crop04, min_size = max(500, round(0.1·4/3·π·10.2³)) = 500, which equals the existing 500 filter: F1 0.559 / 0.491. **H6+H7** = H6 with the 500 filter: 0.000.
+- **Closing-by-reconstruction:** no hint in the recovered text or flags (only binary mask closing elsewhere). Not run.
+
+### S2–S5 (crop04 still below target, so continued)
+- **S2** (`S2_k_before_tau`, tos.k_order=k_first): pool 1,800 · markers 255 · seeded 172 · F1 0.559 / 0.491. Identical, because ≥ 1,800 MIN pass τs = 0.35. The MIN score distribution (263,774 scored) was ≥ 0.25: 77,901 · ≥ 0.30: 34,899 · ≥ 0.35: 1,938 · ≥ 0.40: 33 · ≥ 0.45: 13. So τs binds under either order, unlike the paper's flat Table IV.
+- **S3** (two independent true-dual pools): already the v2 implementation (darker/brighter than parent, separate stats, each capped at 1,800). Nothing new to run. Height check: not saturated. **MIN heights are negative** (median −12, max 10), h_score = 0 for 99.99 %, support found for ~0 % of MIN nodes. The top-1800 weighted contributions are h 0.003 · delta 0.036 · area 0.154 · dark 0.168 · support 0.000.
+- **Root cause (S3b):**
+  - In higra 0.6.13 the 3D ToS root altitude is 0 with `padding='mean'`, same as `'zero'` (identical trees, 3,865 root children). With `'none'` it is 174. The selector border mean is 145.75.
+  - `attribute_height(..., 'auto')` tests `alt_root > min(non-leaf alt)` (0 > 0 → False), so it uses "decreasing".
+  - `tos.height_direction=mean_padding_emulated` reproduces the auto test with a true mean-padding root (145.75 > 0 → increasing).
+  - Run `S3b_height_direction_mean_padding`: pool **204,769** · max_min_height 140 · markers 256 · seeded 172 · F1 0.563 / 0.496 · gate 12.5 / 27.
+  - **With S3b the top-1800 MIN set is identical for every τs in 0.25–0.45** (≥ 0.45: 93,607), which reproduces the paper's τs plateau. Adopted in the frozen config.
+- **S4** (`S4_projection_nearest_internal`, tos.point_projection=nearest_internal; points not in internal_dark are moved to the nearest internal voxel; `projection_distance` recorded): pool 1,938 · **markers 847** · seeded **223** · F1 0.658 (500) / 0.333 (off) · F1@.75 0.603 · gate 12 / 31.
+  - **S3b+S4:** pool 204,769 · markers 859 · seeded 222 · F1 0.660 / 0.330.
+  - Not adopted: the marker count is outside the paper's 53–405, the result depends on the size filter, and the frozen E11 builder hard-codes projection_distance = 0.
+- **S5** (columns): the E11 builder reads `node, polarity, score, point_z/y/x, has_reconstructed_region`; the gate reads `region_voxels`. Every other column we write is descriptive and read by nothing in the recovered code: sub-scores, `region_touches_volume_face`, `region_internal_*`, `region_full_voxels`, and now `projection_distance` / `original_point_*`. No placeholder affects markers or routing.
+
+### Frozen config after round 2
+- `tos.height_direction: mean_padding_emulated` (adopted), `tos.k_order: threshold_first`, `tos.point_projection: none`.
+- `markers.implementation` and `gate.edt_implementation`: `e11_verbatim`.
+- **crop04 = 0.563 / 0.496 vs the 0.985 / 0.978 target: not reached.**
+- Evidence and remaining suspects: `docs/BATOS_PAPER_V2_SPEC.md` §3d. The selector image (λ1 high-pass → 1-voxel-speckle internal mask, inconsistent with the compact markers of paper Fig. 2) and/or a different Higra version's tree are the open questions. No other crop was run.
