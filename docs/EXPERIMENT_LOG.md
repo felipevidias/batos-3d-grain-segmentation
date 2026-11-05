@@ -460,3 +460,54 @@ took ToS crop04 from 0.985 to 0.726).
 ### Bookkeeping
 - Per-object morphology (`morphology_matched_seed.csv.gz`, ~7 MB) is gitignored. The tracked summaries are `morphology_summary_pooled.csv`, `per_crop_all_modes.csv`, `crop_macro_by_mode.csv`, `pooled_object_by_mode.csv`, `verification.csv` and `REPORT.md`.
 - No rows were added to `results/all_runs.csv`: this is a re-evaluation of existing runs, not a new method run.
+
+## 2026-11-05 — Phase 5a group 1 (selector): power outage and recovery
+
+- Group 1 launched 13:26:02 (`python -I -m batos_v2.sensitivity --identity --groups selector --workers 10 --ram-gb 22`,
+  408 crop-jobs = 12 identity + 33 perturbations × 12; `_git.json`: 8cceddf + uncommitted Phase 5a code, committed
+  unchanged as 4a4f259 at 13:28; the YAML was edited at 13:26:32, which does not affect identity jobs). A power outage
+  stopped it after 8 jobs (last at 13:43:04).
+- Completeness criterion: `metrics.csv` (evaluate_v2) + `run.json` with end `timestamp` (+ `DONE`). Kept: identity on
+  00_crop03/04/05/07, 01_crop02/03/04/05. Deleted as partial: identity 00_crop02 (stopped at spatialize),
+  00_crop06 (watershed), 01_crop06 (flatten), 01_crop07 (openrec); `selector_K_1800` 00_crop02..07 (≤ true_dual).
+  No perturbed job had finished. The 4 `gate_median_limit_*` jobs (group-4 smoke test, 13:25) are complete and kept.
+- Identity resumed on the 4 missing crops at 13:55 (commit 4a4f259, same budget, ~9.5 min). **Identity verified 12/12:**
+  per-crop F1@0.50/0.75 identical to `results/evaluate_v2/per_crop_all_modes.csv` (max |Δ| = 0); sel 0.9063 ± 0.2099
+  (min 0.2599), ToS 0.8238 ± 0.3670 (median 0.985, min 0.0121), F1@0.75 0.8175 → 0.8992; gate only on both crop05
+  (2, 3), closest off 01_crop03 (17, 43) == Table II.
+- Group 1 perturbations (396 crop-jobs) relaunched with the same settings; log `C:\BA_TOS_DATA\runs\sensitivity\group1_selector.log`.
+
+### 2026-11-05 16:45 — group 1 killed by Claude Code memory-pressure reaper; relaunched at 16 GB / 8 workers
+- Killed at 16:37 (system near 32 GB while the session was idle; not a pipeline failure). 212/396 perturbation
+  crop-jobs complete, 0 failed. Deleted 10 partials: `selector_area_max_4400` {00_crop04, 01_crop04, 01_crop06,
+  01_crop07}, `selector_dark_percentile_max_39` 00_crop02..07. Relaunched `--groups selector --workers 8 --ram-gb 16`
+  (user decision; deterministic, so only throughput changes). Group 2 will use the same 16 GB / 8 workers.
+
+### Gate blind spot found in group 1 (for Phase 5b)
+Under `selector_w_area` 0.18→0.36 and `selector_w_delta` 0.12→0.06 the gate stops firing on **EFRGP01_00_crop05**
+(01_crop05 still fires, mv=2, qv=3):
+
+| run | 00_crop05 gate | mv | qv | ToS markers / preds | sel F1@0.50 | ToS F1@0.50 |
+|---|---|---|---|---|---|---|
+| identity | fires | 2 | 3 | 53 preds | 0.2599 | 0.0121 |
+| w_area 0.36 | silent | 18 | 18 | 1 pred | 0.0000 | 0.0000 |
+| w_delta 0.06 | silent | 14.5 | 16.25 | 2 preds (1 ignored) | 0.0000 | 0.0000 |
+
+(129 valid GT.) The ToS stage collapses to 1–2 markers; median/Q75 of their region voxels are then taken over 1–2
+values and come out above the 3/4 limits, so the gate does not fire. The exclusive-support gate tests support *size*
+but not marker *count*, so a count collapse gets past it. Closest non-triggered crop elsewhere stays far away (01_crop03:
+44/56 and 39/54). A Phase 5b gate should also test the marker count (e.g. against the GT-free R̂ expected count).
+
+### 2026-11-05 19:33 — group 1 (selector) complete
+- 408/408 crop-jobs complete, 0 failed (resumed run: 396 jobs at 16 GB / 8 workers, system peak 12.3 GB above start,
+  absolute 26.2 GB). Ranked with `scripts/rank_sensitivity.py` → `results/sensitivity/{global_sensitivity.csv,
+  ranking.csv, RANKING.md}`; report `results/sensitivity/GROUP1_SELECTOR_REPORT.md`.
+- 14/17 selector parameters influential (> 0.01). Top: area_preferred_position 0.613, w_delta 0.512, w_area 0.417,
+  area_preferred_width 0.417, area_min 0.289, height_scale_percentile 0.216, K 0.127. Not influential: area_factor,
+  min_score, w_support (0.000, dead-code check confirmed).
+- Gate: beyond the two cases above, `delta_norm 40` (mv 11, qv 14.5, 3 preds) and `area_min 3` (mv 4, qv 7, 21 preds)
+  also silence it on 00_crop05 (sel F1 0); `area_preferred_position 0.84` makes it fire on 01_crop03 (mv 2, qv 4;
+  sel 0.652 vs ToS 0.542). The `area_min 3` case shows that the 3/4 limits are tied to `area_min = 2`.
+- Sensitivity runs are not appended to `results/all_runs.csv` (provenance is per-job `run.json` + the collected CSV);
+  open question for the user.
+- Next: group 2 (openrec_flatten) at 16 GB / 8 workers.
