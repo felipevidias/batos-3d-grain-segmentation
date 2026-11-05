@@ -108,7 +108,7 @@ from the Mac and do not exist here). `Desktop\BATOS_DATA\*.tif` are **not greysc
 3. Never invent paths, metrics, or results. If GT or metadata are missing, **fail loudly**.
 4. Do not tune any parameter per crop using ground truth. Oracle-prompt runs are upper bounds and must be labelled `oracle prompt upper bound`.
 5. Keep pooled-object and crop-macro metrics in separate, clearly labelled tables.
-6. Every run writes: command, timestamp, git commit, environment, parameters, inputs, outputs, metrics → one machine-readable `results/all_runs.csv` (or parquet) with the columns in the plan.
+6. Every run writes: command, timestamp, git commit, environment, parameters, inputs, outputs, metrics → one machine-readable `results/all_runs.csv` (or parquet) with the columns in the plan. Exception (decided 2026-11-05): Phase 5a sensitivity runs are NOT appended to `all_runs.csv`; their table of record is `results/sensitivity/global_sensitivity.csv` (per-job provenance in each `run.json`).
 7. Prefer YAML configs in `configs/` over hard-coded settings.
 8. Keep a running `docs/EXPERIMENT_LOG.md`. Append, never rewrite.
 9. Data lives locally in `~/Documents/BA_TOS_DATA/`; never run heavy jobs from the SMB share (`/Volumes/BATOS_DATA`).
