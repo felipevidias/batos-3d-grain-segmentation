@@ -1,0 +1,186 @@
+# Phase 5a global sensitivity: parameters perturbed one at a time on all 12 crops (batos_v2.sensitivity).
+# Default perturbations: float x0.5 / x2; int >= 4 x0.5 / x2 (rounded); int < 4 -1 / +1; bool flip.
+# `values` overrides (direction -> value); lo / hi clip to the valid domain; a value equal to the frozen
+# one is skipped. kind: flag (CLI flag of `stage`), literal (hard-coded constant: patched COPY of the
+# script, `old` must occur exactly `count` times; {v} = value, {c} = 100 - value), scale (openrec radius
+# from R_hat), eval (evaluate_v2 kwarg; evaluation protocol, NOT a method parameter).
+# Parameters proven dead by static analysis (docs/PARAMETER_INVENTORY.md) are not swept, except one
+# empirical dead-code check (selector_w_support).
+
+groups:
+  # ------------------------------------------------------------------ 1. selector weights and K
+  selector:
+    - {name: selector_K, kind: flag, stage: true_dual, flag: --max-selected-nodes, frozen: 3600, type: int}
+    - {name: selector_min_score, kind: flag, stage: true_dual, flag: --min-score, frozen: 0.35, type: float}
+    - {name: selector_w_height, kind: flag, stage: true_dual, flag: --w-height, frozen: 0.22, type: float}
+    - {name: selector_w_delta, kind: flag, stage: true_dual, flag: --w-delta, frozen: 0.12, type: float}
+    - {name: selector_w_area, kind: flag, stage: true_dual, flag: --w-area, frozen: 0.18, type: float}
+    - {name: selector_w_dark, kind: flag, stage: true_dual, flag: --w-dark, frozen: 0.18, type: float}
+    - {name: selector_area_factor, kind: flag, stage: true_dual, flag: --area-factor, frozen: 22.0, type: float}
+    - {name: selector_area_min, kind: flag, stage: true_dual, flag: --area-min, frozen: 2, type: int, lo: 1}
+    - {name: selector_area_max, kind: flag, stage: true_dual, flag: --area-max, frozen: 2200, type: int}
+    - {name: selector_dark_percentile_max, kind: flag, stage: true_dual, flag: --dark-percentile-max, frozen: 78.0,
+       type: float, hi: 100.0}
+    - {name: selector_delta_norm, kind: flag, stage: true_dual, flag: --delta-norm, frozen: 20.0, type: float}
+    - {name: selector_delta_parent_min, kind: flag, stage: true_dual, flag: --delta-parent-min, frozen: 0, type: int,
+       values: {"+1": 1, "+2": 2}}
+    - {name: selector_area_preferred_position, kind: flag, stage: true_dual, flag: --area-preferred-position,
+       frozen: 0.42, type: float, hi: 1.0}
+    - {name: selector_area_preferred_width, kind: flag, stage: true_dual, flag: --area-preferred-width, frozen: 0.55,
+       type: float}
+    - {name: selector_height_scale_percentile, kind: literal, stage: true_dual, frozen: 95, type: float,
+       values: {"x0.5": 47.5, "max": 100},
+       old: ["float(np.percentile(min_height_values, 95))", "float(np.percentile(max_height_values, 95))"],
+       new: ["float(np.percentile(min_height_values, {v}))", "float(np.percentile(max_height_values, {v}))"]}
+    - {name: selector_K_min_fraction, kind: literal, stage: true_dual, frozen: 0.5, type: float,
+       values: {"x0.5": 0.25, "x2 (all MIN)": 1.0},
+       old: "min_limit = requested // 2", new: "min_limit = int(requested * {v})"}
+    # empirical dead-code check (static analysis: --w-support is not in the true_dual score)
+    - {name: selector_w_support, kind: flag, stage: true_dual, flag: --w-support, frozen: 0.30, type: float,
+       values: {"x2": 0.60}}
+
+  # ------------------------------------------------------------------ 2. openrec / flatten
+  openrec_flatten:
+    - {name: openrec_radius_factor, kind: scale, frozen: 1.5, type: float}
+    - {name: openrec_radius_floor, kind: scale, frozen: 8, type: int}
+    - {name: openrec_norm_percentile, kind: literal, stage: openrec, frozen: 1, type: float, count: 2,
+       values: {"x0.5": 0.5, "x2": 2.0},
+       old: "p1, p99 = np.percentile(v, [1, 99])", new: "p1, p99 = np.percentile(v, [{v}, {c}])"}
+    - {name: flatten_lambda_xy, kind: flag, stage: flatten, flag: --lambda-xy, frozen: 1.0, type: float}
+    - {name: flatten_sigma_z, kind: flag, stage: flatten, flag: --sigma-z, frozen: 0.0, type: float,
+       values: {"+1": 1.0}}
+    - {name: flatten_out_percentile, kind: literal, stage: flatten, frozen: 0.5, type: float,
+       values: {"x0.5": 0.25, "x2": 1.0},
+       old: "return robust_u8(flat, p_low=0.5, p_high=99.5)", new: "return robust_u8(flat, p_low={v}, p_high={c})"}
+
+  # ------------------------------------------------------------------ 3. marker builder
+  markers:
+    # 3a legacy ToS seed (K900) -> raw seed consumed by batos_background
+    - {name: legacy_K, kind: flag, stage: tos_seed, flag: --max-selected-nodes, frozen: 900, type: int}
+    - {name: legacy_min_score, kind: flag, stage: tos_seed, flag: --min-score, frozen: 0.35, type: float}
+    - {name: legacy_height_factor, kind: flag, stage: tos_seed, flag: --height-factor, frozen: 0.012, type: float}
+    - {name: legacy_area_factor, kind: flag, stage: tos_seed, flag: --area-factor, frozen: 22.0, type: float}
+    - {name: legacy_area_min, kind: flag, stage: tos_seed, flag: --area-min, frozen: 2, type: int, lo: 1}
+    - {name: legacy_area_max, kind: flag, stage: tos_seed, flag: --area-max, frozen: 2200, type: int}
+    - {name: legacy_dark_percentile_max, kind: flag, stage: tos_seed, flag: --dark-percentile-max, frozen: 78.0,
+       type: float, hi: 100.0}
+    - {name: legacy_delta_parent_min, kind: flag, stage: tos_seed, flag: --delta-parent-min, frozen: 0, type: int,
+       values: {"+1": 1, "+2": 2}}
+    - {name: legacy_support_area_min, kind: flag, stage: tos_seed, flag: --support-area-min, frozen: 20, type: int}
+    - {name: legacy_support_area_max, kind: flag, stage: tos_seed, flag: --support-area-max, frozen: 45000, type: int}
+    - {name: legacy_support_max_steps, kind: flag, stage: tos_seed, flag: --support-max-steps, frozen: 16, type: int}
+    - {name: legacy_require_max_support, kind: flag, stage: tos_seed, flag: --require-max-support, frozen: false,
+       type: bool}
+    - {name: legacy_support_area_ratio_preferred, kind: flag, stage: tos_seed, flag: --support-area-ratio-preferred,
+       frozen: 18.0, type: float}
+    - {name: legacy_support_area_ratio_width, kind: flag, stage: tos_seed, flag: --support-area-ratio-width,
+       frozen: 80.0, type: float}
+    - {name: legacy_support_contrast_norm, kind: flag, stage: tos_seed, flag: --support-contrast-norm, frozen: 80.0,
+       type: float}
+    - {name: legacy_delta_norm, kind: flag, stage: tos_seed, flag: --delta-norm, frozen: 20.0, type: float}
+    - {name: legacy_area_preferred_position, kind: flag, stage: tos_seed, flag: --area-preferred-position,
+       frozen: 0.42, type: float, hi: 1.0}
+    - {name: legacy_area_preferred_width, kind: flag, stage: tos_seed, flag: --area-preferred-width, frozen: 0.55,
+       type: float}
+    - {name: legacy_w_height, kind: flag, stage: tos_seed, flag: --w-height, frozen: 0.22, type: float}
+    - {name: legacy_w_delta, kind: flag, stage: tos_seed, flag: --w-delta, frozen: 0.12, type: float}
+    - {name: legacy_w_area, kind: flag, stage: tos_seed, flag: --w-area, frozen: 0.18, type: float}
+    - {name: legacy_w_dark, kind: flag, stage: tos_seed, flag: --w-dark, frozen: 0.18, type: float}
+    - {name: legacy_w_support, kind: flag, stage: tos_seed, flag: --w-support, frozen: 0.30, type: float}
+    # in the legacy script seed_raw.tif is written AFTER cleanup_seed -> these four are live (dead in true_dual)
+    - {name: legacy_component_min, kind: flag, stage: tos_seed, flag: --component-min, frozen: 2, type: int, lo: 1}
+    - {name: legacy_component_max, kind: flag, stage: tos_seed, flag: --component-max, frozen: 1500, type: int}
+    - {name: legacy_cleanup_open_radius, kind: flag, stage: tos_seed, flag: --cleanup-open-radius, frozen: 0,
+       type: int, values: {"+1": 1}}
+    - {name: legacy_cleanup_close_radius, kind: flag, stage: tos_seed, flag: --cleanup-close-radius, frozen: 0,
+       type: int, values: {"+1": 1}}
+    - {name: legacy_support_height_ratio, kind: literal, stage: tos_seed, frozen: 0.10, type: float,
+       old: "max(1e-9, 0.10 * max_max_height)", new: "max(1e-9, {v} * max_max_height)"}
+    # 3b background rejection -> internal-dark candidates
+    - {name: bg_dark_percentile, kind: flag, stage: background, flag: --dark-percentile, frozen: 40.0, type: float}
+    - {name: bg_otsu_offset, kind: flag, stage: background, flag: --otsu-offset, frozen: -10, type: int}
+    - {name: bg_dark_threshold_max, kind: flag, stage: background, flag: --dark-threshold-max, frozen: 135, type: int,
+       hi: 255}
+    - {name: bg_dark_connectivity, kind: flag, stage: background, flag: --dark-connectivity, frozen: 1, type: int,
+       values: {"+1": 2, "+2": 3}}
+    - {name: bg_seed_area_min, kind: flag, stage: background, flag: --seed-area-min, frozen: 1, type: int,
+       values: {"+1": 2, "+2": 3}}
+    - {name: bg_seed_area_max, kind: flag, stage: background, flag: --seed-area-max, frozen: 3000, type: int}
+    - {name: bg_max_external_overlap, kind: flag, stage: background, flag: --max-external-overlap, frozen: 0.10,
+       type: float}
+    - {name: bg_min_internal_overlap, kind: flag, stage: background, flag: --min-internal-overlap, frozen: 0.0,
+       type: float, values: {"+0.02": 0.02, "+0.10": 0.10}}
+    - {name: bg_internal_search_radius, kind: flag, stage: background, flag: --internal-search-radius, frozen: 6,
+       type: int}
+    - {name: bg_center_radius, kind: flag, stage: background, flag: --center-radius, frozen: 2, type: int, lo: 0}
+    - {name: bg_ring_inner, kind: flag, stage: background, flag: --ring-inner, frozen: 4, type: int}
+    - {name: bg_ring_outer, kind: flag, stage: background, flag: --ring-outer, frozen: 10, type: int}
+    - {name: bg_center_dark_max, kind: flag, stage: background, flag: --center-dark-max, frozen: 210.0, type: float,
+       hi: 255.0}
+    - {name: bg_min_ring_contrast, kind: flag, stage: background, flag: --min-ring-contrast, frozen: -5.0,
+       type: float}
+    - {name: bg_max_ring_external_coverage, kind: flag, stage: background, flag: --max-ring-external-coverage,
+       frozen: 0.70, type: float, hi: 1.0}
+    - {name: bg_nms_min_dist, kind: flag, stage: background, flag: --nms-min-dist, frozen: 5.0, type: float}
+    - {name: bg_seed_connectivity, kind: literal, stage: background, frozen: 1, type: int, values: {"+2 (26-conn)": 3},
+       old: "seed_lab, nseed = ndi.label(seed > 0, structure=ndi.generate_binary_structure(3, 1))",
+       new: "seed_lab, nseed = ndi.label(seed > 0, structure=ndi.generate_binary_structure(3, {v}))"}
+    # 3c legacy marker builder -> baseline markers (enter the watershed mask)
+    - {name: lm_connectivity, kind: flag, stage: markers_legacy, flag: --connectivity, frozen: 1, type: int,
+       values: {"+1": 2, "+2": 3}}
+    - {name: lm_area_min, kind: flag, stage: markers_legacy, flag: --area-min, frozen: 3, type: int, lo: 1}
+    - {name: lm_area_max, kind: flag, stage: markers_legacy, flag: --area-max, frozen: 900, type: int}
+    - {name: lm_max_dim, kind: flag, stage: markers_legacy, flag: --max-dim, frozen: 30, type: int}
+    - {name: lm_max_elongation, kind: flag, stage: markers_legacy, flag: --max-elongation, frozen: 8.0, type: float}
+    - {name: lm_min_fill, kind: flag, stage: markers_legacy, flag: --min-fill, frozen: 0.005, type: float}
+    - {name: lm_center_radius, kind: flag, stage: markers_legacy, flag: --center-radius, frozen: 2, type: int, lo: 0}
+    - {name: lm_ring_inner, kind: flag, stage: markers_legacy, flag: --ring-inner, frozen: 4, type: int}
+    - {name: lm_ring_outer, kind: flag, stage: markers_legacy, flag: --ring-outer, frozen: 10, type: int}
+    - {name: lm_center_dark_max, kind: flag, stage: markers_legacy, flag: --center-dark-max, frozen: 205.0,
+       type: float, hi: 255.0}
+    - {name: lm_min_ring_contrast, kind: flag, stage: markers_legacy, flag: --min-ring-contrast, frozen: -2.0,
+       type: float}
+    - {name: lm_nms_min_dist, kind: flag, stage: markers_legacy, flag: --nms-min-dist, frozen: 7.0, type: float}
+    - {name: lm_max_markers, kind: flag, stage: markers_legacy, flag: --max-markers, frozen: 420, type: int}
+    - {name: lm_score_dark_weight, kind: literal, stage: markers_legacy, frozen: 0.02, type: float,
+       old: "max(0.0, 205.0 - center_mean) * 0.02", new: "max(0.0, 205.0 - center_mean) * {v}"}
+    # 3d E11 ToS marker builder
+    - {name: e11_nms_radius, kind: flag, stage: markers_tos, flag: --nms-radius, frozen: 6.0, type: float}
+    - {name: e11_edt_priority_weight, kind: flag, stage: markers_tos, flag: --edt-priority-weight, frozen: 0.20,
+       type: float}
+    - {name: e11_min_priority_bonus, kind: flag, stage: markers_tos, flag: --min-priority-bonus, frozen: 0.05,
+       type: float}
+    - {name: e11_polarity, kind: flag, stage: markers_tos, flag: --polarity, frozen: min, type: str,
+       values: {"dual": dual}}
+    # 3e EDT-Otsu fallback markers (used only where the gate fires)
+    - {name: edt_nms_radius, kind: flag, stage: edt_otsu, flag: --nms-radius, frozen: 6.0, type: float}
+    - {name: edt_mask_min_component, kind: literal, stage: edt_otsu, frozen: 500, type: int,
+       old: "    min_component: int = 500,", new: "    min_component: int = {v},"}
+
+  # ------------------------------------------------------------------ 4. gate, watershed, evaluator
+  gate_watershed:
+    - {name: gate_median_limit, kind: literal, stage: route, frozen: 3.0, type: float,
+       old: "MEDIAN_LIMIT = 3.0", new: "MEDIAN_LIMIT = {v}"}
+    - {name: gate_q75_limit, kind: literal, stage: route, frozen: 4.0, type: float,
+       old: "Q75_LIMIT = 4.0", new: "Q75_LIMIT = {v}"}
+    - {name: ws_mask_min_component, kind: literal, stage: ws_tos, frozen: 500, type: int,
+       old: "    min_component: int = 500,", new: "    min_component: int = {v},"}
+    - {name: ws_mask_closing_iterations, kind: literal, stage: ws_tos, frozen: 1, type: int,
+       values: {"-1 (no closing)": 0, "+1": 2},
+       old: "        iterations=1,", new: "        iterations={v},"}
+    - {name: ws_mask_otsu_offset, kind: literal, stage: ws_tos, frozen: 0.0, type: float,
+       values: {"-0.04": -0.04, "+0.04": 0.04},
+       old: "    mask = image_norm > threshold", new: "    mask = image_norm > (threshold + ({v}))"}
+    - {name: ws_image_norm_percentile, kind: literal, stage: ws_tos, frozen: 1.0, type: float,
+       values: {"x0.5": 0.5, "x2": 2.0},
+       old: "    values = work[finite]\n    low, high = np.percentile(values, [1.0, 99.0])",
+       new: "    values = work[finite]\n    low, high = np.percentile(values, [{v}, {c}])"}
+    - {name: ws_distance_norm_percentile, kind: literal, stage: ws_tos, frozen: 1.0, type: float,
+       values: {"x0.5": 0.5, "x2": 2.0},
+       old: "        return np.zeros(array.shape, dtype=np.float32)\n    low, high = np.percentile(values, [1.0, 99.0])",
+       new: "        return np.zeros(array.shape, dtype=np.float32)\n    low, high = np.percentile(values, [{v}, {c}])"}
+    - {name: ws_connectivity, kind: literal, stage: ws_tos, frozen: 1, type: int, values: {"+1": 2, "+2": 3},
+       old: "            connectivity=1,", new: "            connectivity={v},"}
+    # evaluation protocol (reported, NOT counted as method parameters)
+    - {name: eval_min_gt_voxels, kind: eval, kwarg: min_gt_voxels, frozen: 1000, type: int}
+    - {name: eval_exclude_face_touching, kind: eval, kwarg: exclude_face_touching, frozen: true, type: bool}

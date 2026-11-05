@@ -280,6 +280,7 @@ def _morph_summary(m: pd.DataFrame) -> dict[str, float]:
 # --------------------------------------------------------------------------- driver
 def evaluate(pred: np.ndarray, gt: np.ndarray, markers: np.ndarray | None = None, *,
              rule: str | None = None, ignore_overlap_threshold: float = 0.50, min_gt_voxels: int = 1000,
+             exclude_face_touching: bool = True,
              thresholds=THRESHOLDS, scores: dict[int, float] | None = None, morph_iou: float | None = 0.50,
              voxel_size: float = 1.0) -> tuple[dict[str, Any], pd.DataFrame, pd.DataFrame]:
     """Returns (metrics row, per-prediction ignore table, morphology table of matched objects)."""
@@ -287,7 +288,7 @@ def evaluate(pred: np.ndarray, gt: np.ndarray, markers: np.ndarray | None = None
     if (pred < 0).any():
         raise ValueError("prediction contains negative labels")
     pred = pred.astype(np.int64, copy=False)
-    protocol = reference_protocol(gt, min_gt_voxels)
+    protocol = reference_protocol(gt, min_gt_voxels, exclude_face_touching)
     table = classify_predictions(pred, protocol, markers, rule, ignore_overlap_threshold)
     eval_labels = np.sort(table.loc[~table["ignored"], "prediction_label"].to_numpy().astype(np.int64))
     # a prediction lying entirely inside excluded GT has no voxel in the domain: not evaluable (as e09b)
