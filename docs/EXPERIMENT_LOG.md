@@ -392,3 +392,71 @@ Sources: `C:\BA_TOS_DATA\linux_import\chat_recovered\` (README read) and `zsh_re
 - `results/all_runs.csv` now holds the 72 frozen rows: 12 crops × 3 routes × filter on/off, with runtime and peak memory. The previous Phase 1c port rows were moved to `results/all_runs_phase1c_port.csv`.
 - CLAUDE.md §2 (filter row, Phase 1 status) and `docs/BA_TOS_BASELINE_REPRODUCTION.md` were updated.
 - Tag `batos-paper-v2-frozen`.
+
+---
+
+## 2026-11-05 — Session 9: Phase 1d, label-agnostic evaluator (`batos_v2.evaluate_v2`)
+
+### Why
+Frozen e09b decides seed-ignore by label value: it labels the marker volume (6-conn), classifies each marker
+component by its dominant GT label, then drops the *prediction label with the same value*. This breaks for any
+method without markers (Cellpose, SAM, nnInteractive) and for any relabelling (observed in Session 8: `--relabel`
+took ToS crop04 from 0.985 to 0.726).
+
+### What (`src/batos_v2/evaluate_v2.py`, new; no frozen code touched)
+- **Reference protocol.** Identical to e09b: valid GT ≥ 1000 voxels and not touching any face; excluded = the rest; IoU computed on the domain `~ignore_mask`.
+- **Support region S(p).**
+  - With markers: the marker voxels inside p (geometric seed region; label values are irrelevant).
+  - Without markers: p's own voxels.
+- **Ignore rules.**
+  - `dominant` (default with markers): the most frequent GT label among the GT-positive voxels of S(p) is excluded. Ties go to the smallest label, as in e09b.
+  - `fraction` (default without markers): |S(p) ∩ excluded| / |S(p)| ≥ `--ignore-overlap-threshold` (default 0.50).
+  - Background-supported predictions are never ignored, so they stay FP. Unseeded predictions (no marker voxel) are evaluated.
+- **Matching.** Maximum cardinality at IoU ≥ t (TP identical to e09b); among maximum matchings, the one with maximum total IoU (`linear_sum_assignment` per connected component). This makes mean matched IoU label-invariant. e09b keeps scipy's arbitrary maximum matching, so its `mean_matched_iou025` depends on label order. At t ≥ 0.5 the matching is unique.
+- **Added metrics.**
+  - IoU 0.25.
+  - `ap_iouXXX` = TP/(TP+FP+FN): Cellpose/StarDist convention, no scores needed.
+  - `coco_ap_iouXXX`: 101-point, score-ranked; NaN unless `--scores` is given. The plan does not define AP; both are recorded and labelled.
+  - Mean matched IoU.
+  - `pred_to_gt_ratio`.
+  - Morphology per object matched at IoU 0.50, on full objects and in voxel units unless `--voxel-size` is given: volume, d_eq, centroid, surface area (marching cubes), sphericity, elongation (sqrt of the largest/smallest covariance eigenvalue), each with its error (pred − GT).
+- **Tests.** `tests/test_evaluate_v2.py` (12 synthetic tests, incl. equivalence to the frozen e09b functions, label invariance, background-seeded FP, rule thresholds, matching, COCO AP and morphology on a ball/ellipsoid). Full suite 31/31 OK.
+
+### Verification (`scripts/verify_evaluate_v2.py` → `results/evaluate_v2/`)
+- **Reference.** The Phase 1 closure e09b outputs (frozen e09b plus the IoU 0.25 wrapper) on 12 crops × {BA-TOS_ToS, BA-TOS_sel, Otsu+WS} × size filter {none, 500} = 72 evaluations.
+
+| Check | Pass |
+|---|---|
+| A: markers + dominant ≡ e09b seed_ignore (counts, P/R/F1 @ .25/.50/.75, mean matched IoU @ .50/.75) | **72/72** |
+| B: prediction labels randomly permuted (+ offset) ≡ A, all columns incl. mIoU@.25 | **72/72** |
+| C: no markers, fraction 0.50 ≡ e09b overlap_ignore | **72/72** |
+| D: markers + fraction 0.50 ≡ e09b seed_ignore (the two rules coincide on these data) | **72/72** |
+
+- **mIoU@0.25 vs e09b.** v2 − e09b ranges 0 to +0.0112 (nonzero in 62/72 runs). This is expected from the max-IoU tie-break; excluded from A by design.
+- **Before the matching fix.** B failed 29/72, only on mIoU@0.25. This confirms that e09b's mIoU@0.25 is label-order dependent.
+
+### What the evaluator gives without markers (own-voxel fraction 0.50; = e09b overlap_ignore)
+
+| Route (no filter) | Crop-macro F1@0.50, seed (markers) | Crop-macro F1@0.50, no markers | Pooled F1@0.50, seed / no markers |
+|---|---|---|---|
+| BA-TOS_ToS | 0.8238 ± 0.3670 | 0.8162 ± 0.3616 | 0.9116 / 0.9021 |
+| BA-TOS_sel | 0.9063 ± 0.2099 | 0.8947 ± 0.2197 (min 0.2130) | 0.9496 / 0.9401 |
+| Otsu+WS | 0.8301 ± 0.1819 | 0.8120 ± 0.1902 | 0.8657 / 0.8484 |
+
+- **Effect of dropping markers.** Without markers, scores are about 0.01–0.02 lower. A prediction seeded inside a valid grain but lying ≥ 50 % over excluded GT gets ignored, and its valid grain becomes a FN (e.g., pooled sel: TP 2630 → 2574, FP 101 → 94).
+- **Comparing methods.** Methods without markers (Cellpose etc.) must be compared against BA-TOS evaluated in the **same** no-marker mode, not against the seed-ignore numbers.
+
+### Morphology (matched @0.50, pooled, voxel units, no filter, BA-TOS_sel)
+| Measure | Median |
+|---|---|
+| Volume relative error | −0.052 (abs 0.060) |
+| d_eq error | −0.51 vox (GT median d_eq 28.7 vox) |
+| Centroid error | 0.08 vox (p95 8.5) |
+| Sphericity error | −0.027 (GT 0.870) |
+| Elongation error | +0.006 |
+
+- Predictions are systematically ~5 % smaller than GT. ToS and Otsu+WS are similar (Otsu+WS centroid p95 10.4).
+
+### Bookkeeping
+- Per-object morphology (`morphology_matched_seed.csv.gz`, ~7 MB) is gitignored. The tracked summaries are `morphology_summary_pooled.csv`, `per_crop_all_modes.csv`, `crop_macro_by_mode.csv`, `pooled_object_by_mode.csv`, `verification.csv` and `REPORT.md`.
+- No rows were added to `results/all_runs.csv`: this is a re-evaluation of existing runs, not a new method run.
