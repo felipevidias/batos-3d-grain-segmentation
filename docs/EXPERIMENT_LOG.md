@@ -522,3 +522,23 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   deterministic and does not depend on concurrency. 01_crop05 (r = 24) was running when Claude Code's memory-pressure
   guard killed the shell; its partial folder was deleted. Status: 1/12 done, 10 FAILED (r 27–31), 01_crop05 not run.
 - Groups 3 and 4 not started; waiting for the user's decision on how to treat radius_factor x2.
+
+### 2026-11-05 23:58 — radius_factor 2.0 extra point killed by the memory-pressure guard (stopped, per user: stop on failure)
+- `--values 2.0 --workers 2 --ram-gb 16` (commit cd947a8), started 23:02. 9/12 complete (00_crop02..07, 01_crop02,
+  01_crop03, 01_crop05; r 16–20). System peak 17.8 GB above start with only 2 workers. Killed at ~23:58 while
+  01_crop04 (r 20, at step 7/12, past openrec) and 01_crop06 (r 21, in openrec) were running; 01_crop07 not started.
+  Partial folders 01_crop04 and 01_crop06 left in place (the driver deletes them on relaunch). Group 2 not ranked or
+  committed; groups 3–4 not started.
+
+### 2026-11-06 — group 2 (openrec_flatten) complete and ranked; overnight terminal run interrupted at 09:02
+- The user ran the remaining sweeps in a separate terminal (2026-11-06 00:30). radius_factor 2.0: 12/12 (the 3 missing
+  crops with `--workers 1`, done 00:53). Group 2: 133/144 complete; radius_factor 3.0 is infeasible (10 MemoryError at
+  r ≥ 27, 01_crop05 at r = 24 not run).
+- Ranking: 5/6 influential. radius_factor 0.883 (0.75 → all crops at r = 8, mean 0.024), lambda_xy 0.637 (λ 0.5),
+  radius_floor 0.036, out_percentile 0.026, sigma_z 0.016; norm_percentile 0.004 not influential. Gate: fires on 10/12 at
+  radius_factor 0.75, but the fallback cannot rescue a preprocessing collapse; silent on 00_crop05 at λ 2.0 (4/7) and
+  σz 1 (3/5). Report: `results/sensitivity/GROUP2_OPENREC_FLATTEN_REPORT.md`.
+- Group 3 (markers) in the terminal: 682/1500 crop-jobs done by 09:02 (all `legacy_*`, bg_dark_percentile 20, and 10/12
+  of 80), then interrupted (exit 0xC000013A = Ctrl+C / console closed). bg_dark_percentile 80 on both crop05 is a real
+  break: e11 watershed "marker volume empty after applying the mask" (rc 1). bg_otsu_offset −20 / −5: 13 jobs
+  FAILED by the interrupt and 8 partial; the driver re-runs these on relaunch. Group 4 not started.
