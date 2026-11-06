@@ -41,13 +41,17 @@ def main(argv=None) -> int:
     ap.add_argument("--crops", nargs="*", default=["EFRGP01_00_crop05", "EFRGP01_01_crop05", "EFRGP01_00_crop04"])
     ap.add_argument("--variants", nargs="*", default=["A", "B"], choices=["A", "B", "frozen"])
     ap.add_argument("--ram-gb", type=float, default=6.0)
+    ap.add_argument("--root", type=Path, default=ROOT, help="run root; runs go to <root>/<variant>/<crop>")
+    ap.add_argument("--label", default=None, help="run label (default flatten_fix_<variant>)")
+    ap.add_argument("--summary", type=Path, default=REPO_ROOT / "results" / "flatten_fix" / "summary.csv")
+    ap.add_argument("--no-all-runs", action="store_true", help="do not write all_runs.csv (an aggregator does)")
     args = ap.parse_args(argv)
     git = git_state()
     rows, runs = [], []
     for v in args.variants:
         for crop in args.crops:
-            out = ROOT / v / crop
-            label = f"flatten_fix_{v}"
+            out = args.root / v / crop
+            label = args.label or f"flatten_fix_{v}"
             if not (out / "DONE").exists():
                 if out.exists():
                     raise RuntimeError(f"partial run folder exists, inspect and remove it first: {out}")
@@ -69,8 +73,9 @@ def main(argv=None) -> int:
                 x["bg_ref"] = rec.get("bg_ref")
             rows += r1
             runs += r2
-    upsert(REPO_ROOT / "results" / "flatten_fix" / "summary.csv", rows, ["crop_id", "variant", "route"])
-    upsert(REPO_ROOT / "results" / "all_runs.csv", runs, ["experiment_id", "method"])
+    upsert(args.summary, rows, ["crop_id", "variant", "route"])
+    if not args.no_all_runs:
+        upsert(REPO_ROOT / "results" / "all_runs.csv", runs, ["experiment_id", "method"])
     print(pd.DataFrame(rows).reindex(columns=["crop_id", "variant", "route", "bg_ref", "n_markers", "grains_seeded",
                                               "grains_split", "gate_triggered", "gate_mv", "gate_qv", "f1_050",
                                               "f1_075", "max_stage_peak_mb"]).to_string(index=False), flush=True)

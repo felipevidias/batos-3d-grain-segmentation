@@ -603,3 +603,29 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - markers 494 / 536 / 499; seeded 266 / 263 / 260; split 61 / 53 / 10.
   - F1@0.50 0.860 / 0.803 / 0.804, against volume without NMS 0.906 and frozen 0.985. NMS does not help.
 - Doc: `docs/CROP05_ROOT_CAUSE.md`. Tables: `results/flatten_fix/summary.csv`, `results/extinction/summary.csv`, `results/all_runs.csv`.
+
+## 2026-11-06 — batos-paper-v2-fixflat on all 12 crops
+- Frozen batos-paper-v2 with one change: the λ=1 selector flatten offset is bg_ref = median(blur ≥ 1)
+  (`batos_v2.flatten_fixed --variant A`). Re-run from the flatten onward; scale and openrec are read from the frozen
+  run, every later stage is frozen.
+  - Driver: `flatten_fix_run` (gained `--root/--label/--summary/--no-all-runs`).
+  - Run sequentially, max stage peak 3.36 GB, alongside the user's Phase 5a sweep (groups 3–4 not touched).
+  - Runs: `C:\BA_TOS_DATA\runs\batos_paper_v2_fixflat\A`. Log: `C:\BA_TOS_DATA\runs\fixflat_12.log`.
+- The gate fires on none of the 12 crops; ToS = sel bitwise everywhere.
+  - Both crop05: 43/49 and 8/21, against frozen 2/3.
+  - Other 10: gate stats and F1 at all three IoUs identical to frozen; ToS segmentation bitwise identical on 9 of 10.
+  - 01_crop03 changes 0.9 % of voxels with the same TP/FP/FN.
+- Crop-macro F1@0.50, filter none: ToS = sel 0.976 ± 0.023, median 0.986, min 0.913 (01_crop05); F1@0.75 0.970.
+  - Frozen: ToS 0.824 ± 0.367, sel 0.906 ± 0.210.
+  - Filter 500: 0.983 ± 0.014, min 0.957.
+  - crop05: 00 0.992 (frozen ToS 0.012 / sel 0.260); 01 0.913 (0.066 / 0.807).
+- Pooled F1@0.50 (2808 GT):
+  - filter none: 0.979 (P 0.979, R 0.978, TP 2746, FP 58, FN 62); frozen ToS 0.912 / sel 0.950.
+  - filter 500: 0.984 (P 0.990, FP 29, FN 62); frozen ToS 0.935 / sel 0.952. Legacy 0.974 is a different pipeline.
+- Runtime: 87.6 min for 12 crops, against frozen 71.7.
+  - Scan 00 crops ran under the sweep's CPU contention; scan 01 crops took 242–268 s from the flatten onward,
+    close to frozen. The flatten itself takes about 2 s.
+- Otsu+WS control not re-run (not produced by this driver; unchanged).
+- Development-set result; to be frozen before any test crop.
+- Report: `results/batos_v2_fixflat/REPORT.md`. Scripts: `scripts/aggregate_fixflat.py`, `scripts/check_fixflat_identity.py`.
+  48 rows in `results/all_runs.csv`. Tag `batos-paper-v2-fixflat`.

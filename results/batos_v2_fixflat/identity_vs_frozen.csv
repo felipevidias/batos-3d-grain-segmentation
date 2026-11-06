@@ -1,0 +1,13 @@
+crop_id,selector_identical,selector_max_absdiff,selector_frac_voxels_changed,tos_segmentation_identical,tos_segmentation_frac_voxels_changed
+EFRGP01_00_crop02,False,1,3.875e-06,True,0.0
+EFRGP01_00_crop03,False,1,1.3625e-05,True,0.0
+EFRGP01_00_crop04,True,0,0.0,True,0.0
+EFRGP01_00_crop05,False,145,0.990764625,False,0.30620775
+EFRGP01_00_crop06,False,1,5e-07,True,0.0
+EFRGP01_00_crop07,False,1,5e-06,True,0.0
+EFRGP01_01_crop02,True,0,0.0,True,0.0
+EFRGP01_01_crop03,False,1,0.01692775,False,0.008847125
+EFRGP01_01_crop04,True,0,0.0,True,0.0
+EFRGP01_01_crop05,False,142,0.990976125,False,0.246429875
+EFRGP01_01_crop06,True,0,0.0,True,0.0
+EFRGP01_01_crop07,False,1,2.65e-05,True,0.0
