@@ -161,7 +161,7 @@ def summarize(out: Path, crop: str, label: str, info: dict | None, git: dict) ->
                                               "internal_components", "pool_without_component",
                                               "components_with_minimum", "pool_size", "num_selected",
                                               "representative_area_median", "representative_area_q75",
-                                              "scale_radius")}
+                                              "scale_radius", "nms_radius", "nms_survivors")}
         rows.append(row)
         runs.append({
             "experiment_id": f"phase5_{label}/{crop}", "method": route, "model": f"batos-paper-v2 ({label})",
@@ -195,6 +195,7 @@ def main(argv=None) -> int:
     ap.add_argument("--scale-json", type=Path, help="results/scale/{crop}_granulo.json pattern dir for r")
     ap.add_argument("--scale-key", default="r_ps_peak")
     ap.add_argument("--scale-on", choices=("region_voxels", "volume_extinction"), default="region_voxels")
+    ap.add_argument("--nms-radius", type=float, help="volume_nms radius (voxels)")
     ap.add_argument("--ram-gb", type=float, default=6.0)
     args = ap.parse_args(argv)
     git = git_state()
@@ -216,6 +217,9 @@ def main(argv=None) -> int:
                     r, tag = float(auto["estimated_grain_radius"]), "r_est"
                 extra += ["--scale-radius", r, "--scale-on", args.scale_on]
                 label = f"extinction_{v}_{tag}" + ("_greyvol" if args.scale_on == "volume_extinction" else "")
+            if v == "volume_nms":
+                extra += ["--nms-radius", args.nms_radius]
+                label = f"extinction_volume_nms_r{args.nms_radius:g}"
             out = ROOT / label.removeprefix("extinction_") / crop
             if (out / "FAILED").exists():
                 # deterministic method failure recorded earlier (e.g. 0 candidates): report, do not re-run

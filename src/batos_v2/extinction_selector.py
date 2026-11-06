@@ -44,7 +44,9 @@ import numpy as np
 import scipy.ndimage as ndi
 import tifffile
 
-VARIANTS = ("volume", "dynamics", "product", "volume_unique", "volume_unique_scale")
+VARIANTS = ("volume", "dynamics", "product", "volume_unique", "volume_unique_scale", "volume_nms")
+# A2 (2026-11-06) volume_nms: rank by volume extinction, then greedy spatial NMS on the extremum flat-zone centroids
+# (a minimum is accepted only if no accepted minimum lies within --nms-radius voxels), then top K.
 # Follow-up A (2026-11-06), both ranked by volume extinction, rules applied BEFORE the top-K cut:
 #  volume_unique       : one minimum per internal-dark connected component (6-connected, as in e10) of
 #                        --internal-source: a minimum belongs to the component holding most voxels of its extremum
@@ -101,8 +103,45 @@ def dominant_component(parents: np.ndarray, nl: int, nodes: np.ndarray, labels: 
     return comp[nodes]
 
 
+def greedy_nms(ranked: np.ndarray, parents: np.ndarray, nl: int, n: int, shape, radius: float, k: int) -> np.ndarray:
+    """Greedy NMS in rank order on extremum flat-zone centroids; returns at most k accepted nodes."""
+    idx = np.full(n, -1, dtype=np.int64)
+    idx[ranked] = np.arange(ranked.size)
+    leaf_par = parents[:nl]
+    sel = idx[leaf_par] >= 0
+    owner = idx[leaf_par[sel]]
+    zyx = np.stack(np.unravel_index(np.flatnonzero(sel), shape), axis=1).astype(np.float64)
+    cnt = np.bincount(owner, minlength=ranked.size).astype(np.float64)
+    cen = np.stack([np.bincount(owner, weights=zyx[:, a], minlength=ranked.size) for a in range(3)], 1)
+    cen /= np.maximum(cnt, 1)[:, None]
+    r2, cell, grid, keep = radius * radius, max(radius, 1.0), {}, []
+    for i in range(ranked.size):
+        c = cen[i]
+        key = tuple((c // cell).astype(int))
+        ok = True
+        for dz in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    for j in grid.get((key[0] + dz, key[1] + dy, key[2] + dx), ()):
+                        d = cen[j] - c
+                        if d @ d < r2:
+                            ok = False
+                            break
+                    if not ok:
+                        break
+                if not ok:
+                    break
+        if ok:
+            grid.setdefault(key, []).append(i)
+            keep.append(i)
+            if len(keep) >= k:
+                break
+    return ranked[np.array(keep, dtype=np.int64)]
+
+
 def select(image: np.ndarray, variant: str, k: int, internal: np.ndarray | None = None,
-           scale_radius: float | None = None, scale_on: str = "region_voxels") -> tuple[list[dict], dict]:
+           scale_radius: float | None = None, scale_on: str = "region_voxels",
+           nms_radius: float | None = None) -> tuple[list[dict], dict]:
     if variant not in VARIANTS:
         raise ValueError(variant)
     unique = variant.startswith("volume_unique")
@@ -111,6 +150,8 @@ def select(image: np.ndarray, variant: str, k: int, internal: np.ndarray | None 
         raise ValueError(f"{variant} needs --internal-source")
     if scaled and not scale_radius:
         raise ValueError(f"{variant} needs --scale-radius")
+    if variant == "volume_nms" and not nms_radius:
+        raise ValueError("volume_nms needs --nms-radius")
     t0 = time.time()
     tree, altitudes = hg.component_tree_tree_of_shapes_image3d(image)
     alt = np.asarray(altitudes, dtype=np.int64)
@@ -133,7 +174,7 @@ def select(image: np.ndarray, variant: str, k: int, internal: np.ndarray | None 
 
     ext = {}
     winners = {}
-    if variant in ("volume", "product") or unique:
+    if variant in ("volume", "product", "volume_nms") or unique:
         vol = hg.attribute_volume(tree, alt.astype(np.float64), area.astype(np.float64))
         ext["volume"], winners["volume"] = branch_extinction(parents, root, vol, has_dark, tree)
         del vol
@@ -149,7 +190,7 @@ def select(image: np.ndarray, variant: str, k: int, internal: np.ndarray | None 
         # competitions (conservative: the region of m never extends past either extinction point)
         is_winner = winners["volume"] & winners["dynamics"]
     else:
-        base = "volume" if unique else variant
+        base = "volume" if (unique or variant == "volume_nms") else variant
         value = ext[base]
         is_winner = winners[base]
 
@@ -177,7 +218,11 @@ def select(image: np.ndarray, variant: str, k: int, internal: np.ndarray | None 
             pool = pool[np.r_[True, comp[1:] != comp[:-1]]]
         extra["components_with_minimum"] = int(pool.size)
     order = np.lexsort((pool, alt[pool], -value[pool]))
-    chosen = pool[order[:k]]
+    if variant == "volume_nms":
+        chosen = greedy_nms(pool[order], parents, nl, n, image.shape, float(nms_radius), k)
+        extra |= {"nms_radius": float(nms_radius), "nms_survivors": int(chosen.size)}
+    else:
+        chosen = pool[order[:k]]
 
     selected = np.zeros(n, dtype=np.uint8)
     selected[chosen] = 1
@@ -235,6 +280,7 @@ def main(argv=None) -> int:
     ap.add_argument("--k", type=int, default=3600)
     ap.add_argument("--internal-source", type=Path, help="internal-dark candidate mask (volume_unique*)")
     ap.add_argument("--scale-radius", type=float, help="grain radius r for volume_unique_scale")
+    ap.add_argument("--nms-radius", type=float, help="volume_nms: greedy NMS radius (voxels)")
     ap.add_argument("--scale-on", choices=("region_voxels", "volume_extinction"), default="region_voxels",
                     help="window on the voxel count of the extinction region (default) or, literally, on the"
                          " grey-weighted volume extinction value")
@@ -247,7 +293,7 @@ def main(argv=None) -> int:
         internal = np.squeeze(np.asarray(tifffile.imread(args.internal_source)))
         if internal.shape != image.shape:
             raise RuntimeError(f"internal {internal.shape} != image {image.shape}")
-    rows, info = select(image, args.variant, args.k, internal, args.scale_radius, args.scale_on)
+    rows, info = select(image, args.variant, args.k, internal, args.scale_radius, args.scale_on, args.nms_radius)
     info["internal_source"] = str(args.internal_source) if args.internal_source else None
     args.out_dir.mkdir(parents=True, exist_ok=True)
     base = args.image.stem
