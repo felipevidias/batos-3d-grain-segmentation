@@ -1,0 +1,64 @@
+# batos-paper-v2-fixflat — FROZEN method under test (Phase 1f, 2026-11-06).
+# No parameter, code or threshold of this method may change before the test results are reported.
+# Method = batos-paper-v2-frozen (E-series code run verbatim, CLAUDE.md §2 Phase 1 status) with ONE change:
+# the lambda=1 selector flatten adds back bg_ref = median(blur[blur >= 1]) instead of median(blur[blur > 0])
+# (src/batos_v2/flatten_fixed.py --variant A; root cause in docs/CROP05_ROOT_CAUSE.md). Everything else is frozen.
+# Development result (12 SIBGRAPI crops): results/batos_v2_fixflat/REPORT.md (ToS = sel macro F1@0.50 0.976).
+preset: batos-paper-v2-fixflat
+git_tag: batos-paper-v2-fixflat
+git_commit_of_tag: 856c24877e0067d7c0bcb30854aec54d3db57436
+frozen_on: 2026-11-06
+status: frozen_for_test
+
+method:
+  base: batos-paper-v2-frozen          # python -I -m batos_v2.frozen (verbatim recovered scripts, flags in frozen.py)
+  change:
+    stage: pipeline_1_flatten_lambda1
+    replaced_by: batos_v2.flatten_fixed --variant A
+    bg_ref: median(blur[blur >= 1])     # frozen: median(blur[blur > 0])
+  unchanged:
+    scale: e13_estimate_scale (GT-free, 12-row manifest per crop set)
+    openrec_radius: max(8, round(1.5 * R_hat))
+    selector_lambda_xy: 1.0
+    tos_selector: true_dual K=3600 (1800 MIN + 1800 MAX), tau_s=0.35, area factor 22, area 2-2200
+    markers: e11 ToS-MIN, NMS 6, EDT weight 0.20
+    boundary_rule: batos_background internal_dark (face-connected dark rejected)
+    gate: E23c median(region_voxels) <= 3 and q75 <= 4 -> EDT-Otsu matched count (kept, expected inactive)
+    mask: Otsu (no offset) on the openrec image, closing 1, fill holes, components >= 500, U ToS-MIN + baseline
+    watershed: e11_run_fixed_mask_watershed connectivity 1
+  evaluation:
+    protocol: seed_ignore (e09b, paper Sec. III-C), IoU 0.25 / 0.50 / 0.75
+    gt_valid: >= 1000 voxels and not touching a crop face
+    size_filter: [none (primary), 500 (no relabel)]
+    routes: [BA-TOS_ToS, BA-TOS_sel]
+    tables: crop-macro (mean, sample SD, median, min) and pooled objects, kept separate
+
+drivers:
+  frozen_reference: python -I -m batos_v2.frozen --crops-json <json> --runs-root <root> --crop-id <id>
+  fixflat: python -I -m batos_v2.flatten_fix_run --variants A --frozen-root <frozen root> --root <root> --label <label>
+  aggregation: scripts/aggregate_fixflat.py
+
+recovered_scripts_sha256:
+    e13_estimate_scale: {path: 'C:\BA_TOS_DATA\linux_import\linux_patches\BA_TOS_E13_E16_conditional_acceptance\audit\e13_estimate_scale.py', sha256: c29f26f2b289d0dad4d782ad518348e0dfe9e42b73fcfea99c70a47ab5acc320}
+    openrec_v2: {path: 'C:\BA_TOS_DATA\linux_import\zsh_recovered\code__segmentation__batos__batos_preprocess_opening_reconstruction_v2.py', sha256: 4c75c334fb472a78f93d81d0df3bd39c879b06967fd2726aa009ac594b7db154}
+    batos_preprocess: {path: 'C:\Users\USER\batos-3d-grain-segmentation\src\batos\batos_preprocess.py', sha256: dcad55021ad2dfd7a464b94f410fb9a3d5e2bd05c3220614251d4b82dde8c386}
+    batos_tos_seed: {path: 'C:\BA_TOS_DATA\frozen_code\pilot_branch_413920f\batos_tos_seed.py', sha256: cc0006c4d9eee2335c223dfea43f561cc5a23fa5b35e7621b1cc64f17b08ef2d}
+    batos_background: {path: 'C:\Users\USER\batos-3d-grain-segmentation\src\batos\batos_background.py', sha256: 593fcbae8389e3015ace2b9e8c54f991ba7744e65c3383049296f060af44808b}
+    batos_markers: {path: 'C:\Users\USER\batos-3d-grain-segmentation\src\batos\batos_markers.py', sha256: 12df7ed3ef7ab132c457aada5b4fc80b2bb94293cbe21bc5b11cbcaf71d54ee3}
+    true_dual: {path: 'C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\batos_tos_seed_true_dual.py', sha256: 2acd06bda50951a496efe8d3754f8eb12caf9d5f34631afee50857ca52caa5ed}
+    spatialize: {path: 'C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e10_spatialize_candidates_no_gt.py', sha256: abe2fc66f5d72b6b2ad140a64fa87912713d5fb7960ab3e15b9479e83c6b174f}
+    e11_markers: {path: 'C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e11_build_markers_ablation.py', sha256: f481dc4c53cebed57ee2d9f774b6ebe41f5666985910b601f5217c63e8f8d502}
+    e11_controls: {path: 'C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e11_build_control_markers.py', sha256: 6ce55b8c16769bc4134f6e91e4317a76ac18786865462d52d2526dfce8f7d953}
+    e11_watershed: {path: 'C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e11_run_fixed_mask_watershed.py', sha256: 8995f745ebaface9a2e2170a8796257649078135b70663a68752899209dc985d}
+    e09b: {path: 'C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e09b_ignore_aware_audit.py', sha256: aa541c55185b19492acf203adb6d4bb117cf0352b870e3fc3591d0d35af3e9a7}
+    e23c_route: {path: 'C:\BA_TOS_DATA\linux_import\linux_patches\e23c_selective_router_bundle\e23c_build_selective_marker_route.py', sha256: 043a0598c3bb0a02afab1b023c8fb6ec7e96d22dd9495b5e25a3c8403c590dcc}
+    e09b_iou025: {path: 'C:\Users\USER\batos-3d-grain-segmentation\scripts\e09b_with_iou025.py', sha256: d70968b448bb04019a0c420d3ce59a6e60481a9fdb72757de0eb3f403ca3b642}
+own_code_sha256_at_freeze:
+    src/batos_v2/flatten_fixed.py: f62e0750388587c65d06373471126bb01721067f47bbf8467b80964eaefdbead
+    src/batos_v2/flatten_fix_run.py: d1d195c7bae406710157e6a31e97496b7e5280f88d3728003f4f3ca126f8b18a
+    src/batos_v2/frozen.py: b0073719168a73cd10468ed5114c4fa28f87b1c9bb152bc736fb4eae1006d414
+    src/batos_v2/sensitivity.py: 5a88c16ec5766687cd1d41bb119c952a1aa1c7406c17f6384e83d98c87b899ea
+    src/batos_v2/extinction_run.py: 91621812eb1e3f58264d07899692bdf213a2f2df0ab87c4205681fafb7c5146f
+    src/batos_v2/scale_granulo.py: aa72691be4153362b75b3526bdf49408ab5c8b0fea1a02f8ccc159be9da47fd9
+    scripts/aggregate_sibgrapi.py: 863b5400280b6dc2bcd97df9f2e639758aef1e78fa0e4178654fff08ec064d95
+    scripts/aggregate_fixflat.py: f83f41f98eff4c50c3a4fdd03260b79e2a2a73c8fd5fd17741ce189b50427c0a
