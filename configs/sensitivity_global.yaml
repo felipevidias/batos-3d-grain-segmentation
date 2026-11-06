@@ -41,7 +41,10 @@ groups:
 
   # ------------------------------------------------------------------ 2. openrec / flatten
   openrec_flatten:
-    - {name: openrec_radius_factor, kind: scale, frozen: 1.5, type: float}
+    # x2 (3.0, r 24-31) is infeasible on the 32 GB machine: the frozen openrec ball erosion (scipy grey_erosion) raises
+    # MemoryError at r >= 27 deterministically (resource limit, not a segmentation failure); 2.0 added 2026-11-05.
+    - {name: openrec_radius_factor, kind: scale, frozen: 1.5, type: float,
+       values: {"x0.5": 0.75, "x2": 3.0, "x4/3": 2.0}}
     - {name: openrec_radius_floor, kind: scale, frozen: 8, type: int}
     - {name: openrec_norm_percentile, kind: literal, stage: openrec, frozen: 1, type: float, count: 2,
        values: {"x0.5": 0.5, "x2": 2.0},

@@ -508,6 +508,8 @@ def main(argv=None) -> int:
     ap.add_argument("--groups", nargs="*", help="groups to run (default: all)")
     ap.add_argument("--params", nargs="*", help="parameter names to run (default: all in the groups)")
     ap.add_argument("--identity", action="store_true", help="also run the unperturbed pipeline from scratch")
+    ap.add_argument("--values", nargs="*",
+                    help="only these perturbed values (matched on the value as written, e.g. 2.0, or its folder tag, e.g. 2)")
     ap.add_argument("--crops", nargs="*", default=CROPS)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--ram-gb", type=float, default=22.0)
@@ -524,6 +526,8 @@ def main(argv=None) -> int:
             jobs += [(c, None, "identity", "frozen") for c in args.crops]
         for p in selected:
             for direction, value in perturbed_values(p):
+                if args.values and str(value) not in args.values and fmt_value(value) not in args.values:
+                    continue
                 jobs += [(c, p, direction, value) for c in args.crops]
         # heavy-first ordering keeps the RAM budget busy
         args.root.mkdir(parents=True, exist_ok=True)

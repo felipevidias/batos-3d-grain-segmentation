@@ -511,3 +511,14 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
 - Sensitivity runs are not appended to `results/all_runs.csv` (provenance is per-job `run.json` + the collected CSV);
   open question for the user.
 - Next: group 2 (openrec_flatten) at 16 GB / 8 workers.
+
+### 2026-11-05 22:31 — group 2 (openrec_flatten): main run done; radius_factor x2 infeasible on this machine
+- Main run 19:34–22:28 (16 GB / 8 workers): 121/132 ok. 10/11 perturbations complete on 12 crops. System peak
+  18.7 GB above start, absolute 31.9 GB (= all RAM; openrec is the heavy stage).
+- `openrec_radius_factor = 3.0` (radius 24–31 instead of 12–16): 11 crops failed with `MemoryError` in the frozen
+  openrec script (`opening_by_reconstruction`, line 35, scipy grey erosion with a ball footprint). Only 01_crop03
+  (r = 24) finished (openrec 732 s).
+- Sequential re-run (`--workers 1`, 22:28): r = 27–31 fail with MemoryError within ~1 s each, alone, so the failure is
+  deterministic and does not depend on concurrency. 01_crop05 (r = 24) was running when Claude Code's memory-pressure
+  guard killed the shell; its partial folder was deleted. Status: 1/12 done, 10 FAILED (r 27–31), 01_crop05 not run.
+- Groups 3 and 4 not started; waiting for the user's decision on how to treat radius_factor x2.
