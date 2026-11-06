@@ -542,3 +542,16 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   of 80), then interrupted (exit 0xC000013A = Ctrl+C / console closed). bg_dark_percentile 80 on both crop05 is a real
   break: e11 watershed "marker volume empty after applying the mask" (rc 1). bg_otsu_offset −20 / −5: 13 jobs
   FAILED by the interrupt and 8 partial; the driver re-runs these on relaunch. Group 4 not started.
+
+## 2026-11-06 — Phase 5c: extinction-based ToS selector on EFRGP01_00_crop04 (development crop only)
+- Code 790b0a6: `batos_v2.extinction_selector` replaces only the frozen true_dual stage; `batos_v2.extinction_run`
+  reuses sensitivity.CropRun (frozen upstream outputs, frozen downstream calls, evaluate_v2 with markers / seed-ignore).
+  Command: `python -I -m batos_v2.extinction_run --crop EFRGP01_00_crop04` (variants volume, dynamics, product; K 3600).
+  Ran alongside the user's group 3–4 terminal sweep; this work peaked at 3.13 GB per stage (driver 0.62 GB).
+- F1@0.50 (ToS = sel, gate off for all): volume 0.906, product 0.764, dynamics 0.611; frozen 0.985. Target ≥ 0.98 not met.
+  Cause: split grains (47 / 109 / 192 valid grains with ≥ 2 markers vs 0 frozen); recall 0.96–0.99.
+  Pool 238,168 dark extrema (0 touch a face); e10 accepted every node (alt / parent-alt checks).
+- Parameters: 1 numeric (K) + variant vs 17 in the frozen selector.
+- Side check (GT for diagnosis only): e13 r_est 10.20 / 9.00 / 8.00 (crop04 / 00_crop05 / 01_crop05) vs median GT
+  r_eq 14.32 / 14.35 / 14.36 → underestimates by 29 / 37 / 44 %, more on the gate-firing crops.
+- Write-up: `docs/EXTINCTION_SELECTOR.md`; tables `results/extinction/`; 6 rows appended to `results/all_runs.csv`.

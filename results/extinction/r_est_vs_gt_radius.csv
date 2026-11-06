@@ -1,0 +1,4 @@
+crop_id,r_est_e13,openrec_radius,e13_estimated_n_grains,n_valid_gt,median_r_eq_valid_gt,q25_r_eq_valid_gt,q75_r_eq_valid_gt,ratio_gt_over_r_est,n_gt_all,median_r_eq_all_gt
+EFRGP01_00_crop04,10.198,15,1180.3,272,14.319,14.298,14.343,1.404,649,13.956
+EFRGP01_00_crop05,9.000,14,980.4,129,14.350,14.321,14.386,1.594,304,14.010
+EFRGP01_01_crop05,8.000,12,1408.5,128,14.362,14.322,14.382,1.795,309,14.004
