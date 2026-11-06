@@ -572,3 +572,17 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   cause of the crop05 collapse.
 - Docs: `docs/SCALE_ESTIMATOR.md` (new), `docs/EXTINCTION_SELECTOR.md` §7. Tables: `results/scale/`,
   `results/extinction/summary.csv`; 18 rows upserted in `results/all_runs.csv`.
+
+## 2026-11-06 — B2 crop05 forensics (read-only)
+- The user's message was truncated after "(b) … Name the first"; this was read as "the first stage where crop05 diverges".
+  A second announced run was not included in the message → not done.
+- (a) The 16 % unlabelled bright foreground is the specimen's confining membrane: one 26-connected sheet (99.9 %),
+  ≤ ~6 voxels thick, at raw grey ≈ 31.5k (grains 47.3k, air ≈ 9k). It runs diagonally and cuts off the high-y /
+  high-x corner of both crop05 (same origin, consecutive scans). About 45 % of each crop05 is exterior air. Renders:
+  `C:\BA_TOS_DATA\runs\crop05_forensics\*_midslices.png`.
+- (b) First divergence = flatten λ = 1 (`batos_preprocess.flatten_volume_u8`): bg_ref = median(blur[blur > 0]) = 0.9 on
+  crop05 vs 186 on crop04. The openrec image is 58–67 % zero, and the float Gaussian tails make 51 % of the "positive"
+  voxels < 1. The selector loses its offset (grain body 44 / 33 vs 165; cores / pores / air 0–7). Downstream: dark_alt_max
+  46 / 42 vs 178; MIN points 97 % / 86 % in GT background; internal mask = grain-body fragments (83 / 75 per grain);
+  53 / 191 markers with 2-voxel supports → gate. Verified by re-running the frozen flatten (bit-identical).
+  Doc: `docs/CROP05_FORENSICS.md`; table: `results/crop05_forensics/stage_comparison.csv`.
