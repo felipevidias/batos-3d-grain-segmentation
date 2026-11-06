@@ -58,6 +58,8 @@ SCRIPTS = {
     "e14_mintree": CHAT / "e14_build_mintree_candidates.py",
     "e15_suite": LI / "linux_patches/BA_TOS_E13_E16_conditional_acceptance/audit/e15_make_crop_size_suite.py",
     "e09b_iou025": REPO_ROOT / "scripts/e09b_with_iou025.py",
+    # Phase 1f: exact low-memory re-implementation of openrec_v2 (bit-identical; used only when --openrec-impl asks)
+    "openrec_lowmem": REPO_ROOT / "src/batos_v2/openrec_lowmem.py",
 }
 
 # run_batos_pipeline.sh (recovered) step flags
@@ -166,6 +168,12 @@ def main(argv=None) -> int:
     parser.add_argument("--gray", type=Path)
     parser.add_argument("--gt", type=Path)
     parser.add_argument("--params-json", type=Path)
+    # Phase 1f (test protocol): other crop sets and a memory-safe openrec. Defaults reproduce the frozen runs.
+    parser.add_argument("--crops-json", type=Path, default=REPO_ROOT / "data/metadata/crops_sibgrapi.json")
+    parser.add_argument("--openrec-impl", choices=["frozen", "lowmem", "auto"], default="frozen",
+                        help="auto: batos_v2.openrec_lowmem when the radius exceeds --lowmem-above (exact, bit-identical"
+                             " to the frozen script; avoids its ~nonzero(ball) x (2r+1)^3 offset table)")
+    parser.add_argument("--lowmem-above", type=int, default=15)
     args = parser.parse_args(argv)
     custom = [args.gray, args.gt, args.params_json]
     if any(custom) and not all(custom):
@@ -187,7 +195,7 @@ def main(argv=None) -> int:
                 raise FileNotFoundError(path)
         params = json.loads(args.params_json.read_text(encoding="utf-8"))
     else:
-        meta = json.loads((REPO_ROOT / "data/metadata/crops_sibgrapi.json").read_text(encoding="utf-8"))
+        meta = json.loads(args.crops_json.read_text(encoding="utf-8"))
         crop = next(c for c in meta["crops"] if c["crop_id"] == args.crop_id)
         gray, gt = Path(crop["gray_crop_path"]), Path(crop["gt_path"])
         # 0 scale (shared across crops)
@@ -197,7 +205,10 @@ def main(argv=None) -> int:
 
     # 1 openrec v2 (E13: --prefix crop_id)
     prep = out / "01_preprocess_openrec_auto_minparam"
-    run("openrec_v2", "openrec_v2", [gray, "--out-dir", prep, "--prefix", cid, "--radius", radius])
+    openrec_key = "openrec_v2"
+    if args.openrec_impl == "lowmem" or (args.openrec_impl == "auto" and radius > args.lowmem_above):
+        openrec_key = "openrec_lowmem"
+    run("openrec_v2", openrec_key, [gray, "--out-dir", prep, "--prefix", cid, "--radius", radius])
     flat_image = one(prep, "*_flatten_openrec_r*_8u.tif")
 
     # 2 run_batos_pipeline.sh <flat> <out> 1 <min_size>: steps 1-4
@@ -272,6 +283,7 @@ def main(argv=None) -> int:
         "timestamp": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "command": subprocess.list2cmdline([sys.executable, "-I", "-m", "batos_v2.frozen", *(argv or sys.argv[1:])]),
         "git": git_state(), "auto_params": params, "openrec_radius": radius, "min_predicted_size": min_size,
+        "openrec_implementation": openrec_key,
         "inputs": {"gray": str(gray), "gt": str(gt)},
         "outputs": {"flat_image": str(flat_image), "selector": str(selector), "internal": str(internal),
                     "baseline_markers": str(baseline), "candidates": str(cand_csv), "diagnostics": str(diag)},

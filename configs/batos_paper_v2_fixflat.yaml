@@ -33,10 +33,11 @@ method:
     routes: [BA-TOS_ToS, BA-TOS_sel]
     tables: crop-macro (mean, sample SD, median, min) and pooled objects, kept separate
 
-drivers:
-  frozen_reference: python -I -m batos_v2.frozen --crops-json <json> --runs-root <root> --crop-id <id>
-  fixflat: python -I -m batos_v2.flatten_fix_run --variants A --frozen-root <frozen root> --root <root> --label <label>
-  aggregation: scripts/aggregate_fixflat.py
+drivers:   # documentation only (no method parameter): how the method is run
+  frozen_reference: python -I -m batos_v2.frozen --crops-json <json> --runs-root <root> --crop-id <id> [--openrec-impl auto]
+  fixflat_dev: python -I -m batos_v2.flatten_fix_run --variants A --root <root> --label <label>  (dev crops)
+  test_protocol: python -I scripts/run_test_protocol.py  (frozen + fixflat on data/metadata/crops_test.json)
+  aggregation: scripts/aggregate_fixflat.py (dev), scripts/aggregate_test_protocol.py (test)
 
 recovered_scripts_sha256:
     e13_estimate_scale: {path: 'C:\BA_TOS_DATA\linux_import\linux_patches\BA_TOS_E13_E16_conditional_acceptance\audit\e13_estimate_scale.py', sha256: c29f26f2b289d0dad4d782ad518348e0dfe9e42b73fcfea99c70a47ab5acc320}
