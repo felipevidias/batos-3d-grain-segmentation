@@ -41,9 +41,21 @@ from pathlib import Path
 
 import higra as hg
 import numpy as np
+import scipy.ndimage as ndi
 import tifffile
 
-VARIANTS = ("volume", "dynamics", "product")
+VARIANTS = ("volume", "dynamics", "product", "volume_unique", "volume_unique_scale")
+# Follow-up A (2026-11-06), both ranked by volume extinction, rules applied BEFORE the top-K cut:
+#  volume_unique       : one minimum per internal-dark connected component (6-connected, as in e10) of
+#                        --internal-source: a minimum belongs to the component holding most voxels of its extremum
+#                        flat zone (pre-selection proxy of its exclusive support); per component only the minimum with
+#                        the largest volume extinction is kept; minima outside every component are dropped (the frozen
+#                        e11 builder discards such points anyway).
+#  volume_unique_scale : as volume_unique, after keeping only minima whose extinction region (the branch top of the
+#                        volume competition) has a voxel count in [0.05, 2.0] x (4/3) pi r^3, r = --scale-radius.
+#                        hg.attribute_volume is grey-weighted (voxels x grey levels), so the window is applied to the
+#                        geometric size (voxel count) of the extinction region, which has the units of (4/3) pi r^3.
+SCALE_WINDOW = (0.05, 2.0)
 FIELDS = ["rank", "node", "polarity", "score", "area", "height", "polarity_height", "alt", "parent_alt",
           "delta_parent", "support", "support_area", "support_height", "support_contrast", "support_steps",
           "h_score", "delta_score", "area_score", "dark_score", "intensity_score", "support_score",
@@ -69,9 +81,36 @@ def branch_extinction(parents: np.ndarray, root: int, attribute: np.ndarray, has
     return ext, is_winner
 
 
-def select(image: np.ndarray, variant: str, k: int) -> tuple[list[dict], dict]:
+def dominant_component(parents: np.ndarray, nl: int, nodes: np.ndarray, labels: np.ndarray, n: int) -> np.ndarray:
+    """Per node in `nodes`: internal component holding most of its flat-zone (leaf children) voxels, 0 if none."""
+    in_set = np.zeros(n, dtype=bool)
+    in_set[nodes] = True
+    leaf_par = parents[:nl]
+    lab = labels.ravel()
+    sel = in_set[leaf_par] & (lab > 0)
+    m, l = leaf_par[sel], lab[sel].astype(np.int64)
+    comp = np.zeros(n, dtype=np.int64)
+    if m.size:
+        key = m * (int(lab.max()) + 1) + l
+        uk, cnt = np.unique(key, return_counts=True)
+        um, ul = uk // (int(lab.max()) + 1), uk % (int(lab.max()) + 1)
+        order = np.lexsort((ul, -cnt, um))          # per node: largest count first, then smallest label
+        um, ul = um[order], ul[order]
+        first = np.r_[True, um[1:] != um[:-1]]
+        comp[um[first]] = ul[first]
+    return comp[nodes]
+
+
+def select(image: np.ndarray, variant: str, k: int, internal: np.ndarray | None = None,
+           scale_radius: float | None = None, scale_on: str = "region_voxels") -> tuple[list[dict], dict]:
     if variant not in VARIANTS:
         raise ValueError(variant)
+    unique = variant.startswith("volume_unique")
+    scaled = variant == "volume_unique_scale"
+    if unique and internal is None:
+        raise ValueError(f"{variant} needs --internal-source")
+    if scaled and not scale_radius:
+        raise ValueError(f"{variant} needs --scale-radius")
     t0 = time.time()
     tree, altitudes = hg.component_tree_tree_of_shapes_image3d(image)
     alt = np.asarray(altitudes, dtype=np.int64)
@@ -94,7 +133,7 @@ def select(image: np.ndarray, variant: str, k: int) -> tuple[list[dict], dict]:
 
     ext = {}
     winners = {}
-    if variant in ("volume", "product"):
+    if variant in ("volume", "product") or unique:
         vol = hg.attribute_volume(tree, alt.astype(np.float64), area.astype(np.float64))
         ext["volume"], winners["volume"] = branch_extinction(parents, root, vol, has_dark, tree)
         del vol
@@ -110,11 +149,33 @@ def select(image: np.ndarray, variant: str, k: int) -> tuple[list[dict], dict]:
         # competitions (conservative: the region of m never extends past either extinction point)
         is_winner = winners["volume"] & winners["dynamics"]
     else:
-        value = ext[variant]
-        is_winner = winners[variant]
+        base = "volume" if unique else variant
+        value = ext[base]
+        is_winner = winners[base]
 
     dark_nodes = np.flatnonzero(dark)
     pool = dark_nodes[~touches[dark_nodes]]
+    n_touch = int(dark_nodes.size - pool.size)
+    extra = {"pool_before_rules": int(pool.size)}
+    if scaled:
+        top_area = hg.propagate_sequential(tree, area.astype(np.float64), is_winner)
+        v_grain = 4.0 / 3.0 * np.pi * float(scale_radius) ** 3
+        lo, hi = SCALE_WINDOW[0] * v_grain, SCALE_WINDOW[1] * v_grain
+        size = top_area[pool] if scale_on == "region_voxels" else value[pool]
+        keep = (size >= lo) & (size <= hi)
+        extra |= {"scale_radius": float(scale_radius), "scale_window_voxels": [lo, hi],
+                  "scale_on": scale_on, "pool_in_scale_window": int(keep.sum())}
+        pool = pool[keep]
+    if unique:
+        labels, ncomp = ndi.label(internal > 0, structure=ndi.generate_binary_structure(3, 1))
+        comp = dominant_component(parents, nl, pool, labels, n)
+        extra |= {"internal_components": int(ncomp), "pool_without_component": int((comp == 0).sum())}
+        pool, comp = pool[comp > 0], comp[comp > 0]
+        order = np.lexsort((pool, alt[pool], -value[pool], comp))   # per component: best first
+        pool, comp = pool[order], comp[order]
+        if pool.size:
+            pool = pool[np.r_[True, comp[1:] != comp[:-1]]]
+        extra["components_with_minimum"] = int(pool.size)
     order = np.lexsort((pool, alt[pool], -value[pool]))
     chosen = pool[order[:k]]
 
@@ -156,12 +217,13 @@ def select(image: np.ndarray, variant: str, k: int) -> tuple[list[dict], dict]:
     areas = np.array([r["area"] for r in rows]) if rows else np.zeros(0)
     info = {"variant": variant, "k": k, "num_tree_nodes": n, "num_leaves": nl,
             "num_min_like_nodes": int(min_like.sum()), "num_dark_extrema": int(dark_nodes.size),
-            "num_dark_extrema_touching_face": int(dark_nodes.size - pool.size), "pool_size": int(pool.size),
+            "num_dark_extrema_touching_face": n_touch, "pool_size": int(pool.size),
             "num_selected": len(rows), "representative_area_median": float(np.median(areas)) if rows else None,
             "representative_area_q75": float(np.percentile(areas, 75)) if rows else None,
             "representative_area_max": int(areas.max()) if rows else None,
             "representative_steps_median": float(np.median(depth_steps)) if rows else None,
-            "extinction_kth": float(value[chosen[-1]]) if rows else None, "seconds": round(time.time() - t0, 1)}
+            "extinction_kth": float(value[chosen[-1]]) if rows else None, "seconds": round(time.time() - t0, 1),
+            **extra}
     return rows, info
 
 
@@ -171,11 +233,22 @@ def main(argv=None) -> int:
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--variant", choices=VARIANTS, required=True)
     ap.add_argument("--k", type=int, default=3600)
+    ap.add_argument("--internal-source", type=Path, help="internal-dark candidate mask (volume_unique*)")
+    ap.add_argument("--scale-radius", type=float, help="grain radius r for volume_unique_scale")
+    ap.add_argument("--scale-on", choices=("region_voxels", "volume_extinction"), default="region_voxels",
+                    help="window on the voxel count of the extinction region (default) or, literally, on the"
+                         " grey-weighted volume extinction value")
     args = ap.parse_args(argv)
     image = np.squeeze(np.asarray(tifffile.imread(args.image)))
     if image.ndim != 3 or image.dtype != np.uint8:
         raise RuntimeError(f"selector image must be 3D uint8, got {image.shape} {image.dtype}")
-    rows, info = select(image, args.variant, args.k)
+    internal = None
+    if args.internal_source:
+        internal = np.squeeze(np.asarray(tifffile.imread(args.internal_source)))
+        if internal.shape != image.shape:
+            raise RuntimeError(f"internal {internal.shape} != image {image.shape}")
+    rows, info = select(image, args.variant, args.k, internal, args.scale_radius, args.scale_on)
+    info["internal_source"] = str(args.internal_source) if args.internal_source else None
     args.out_dir.mkdir(parents=True, exist_ok=True)
     base = args.image.stem
     with open(args.out_dir / f"{base}_tosconop_autodual_candidates.csv", "w", newline="", encoding="utf-8") as f:
