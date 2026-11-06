@@ -586,3 +586,20 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   46 / 42 vs 178; MIN points 97 % / 86 % in GT background; internal mask = grain-body fragments (83 / 75 per grain);
   53 / 191 markers with 2-voxel supports → gate. Verified by re-running the frozen flatten (bit-identical).
   Doc: `docs/CROP05_FORENSICS.md`; table: `results/crop05_forensics/stage_comparison.csv`.
+
+## 2026-11-06 — Root-cause fix test (flatten bg_ref) and A2 (extinction + spatial NMS)
+- Code 1f4b84b. Crops: 00_crop04, 00_crop05, 01_crop05. Stages peaked ≤ 3.36 GB, run in sequence. Log:
+  `C:\BA_TOS_DATA\runs\rootcause_fix.log`. Frozen code untouched.
+- Fix: copy of the λ=1 flatten (`batos_v2.flatten_fixed`), bg_ref over the specimen. A = median(blur ≥ 1), B = median
+  over e13's Otsu foreground of the raw crop. Re-run from flatten onward, all later stages frozen.
+  - bg_ref A / B: crop04 198.8 / 223.8; 00_crop05 176.7 / 210.6; 01_crop05 117.4 / 162.0 (frozen 186.1 / 0.9 / 0.9).
+  - crop04 unchanged: 398 markers, gate 43/49, F1@0.50 0.985, F1@0.75 0.978.
+  - 00_crop05: 193 markers, gate off (43/49), ToS = sel 0.992 / 0.992 (frozen ToS 0.012, sel 0.260).
+  - 01_crop05: 196 markers, gate off (8/21), ToS = sel 0.913 / 0.891 (frozen ToS 0.066, sel 0.807).
+  - A and B give identical results: the robust rescale cancels the offset shift.
+  - **Conclusion: the crop05 support collapse is a flattening artefact caused by exterior air, not a property of the method.**
+  - Hybrid indicative macro (crop05 replaced only): ToS 0.976 ± 0.023. Not a v2 result; the 12-crop rerun is pending.
+- A2 volume_nms on crop04 (r = 7 / 10 / 13):
+  - markers 494 / 536 / 499; seeded 266 / 263 / 260; split 61 / 53 / 10.
+  - F1@0.50 0.860 / 0.803 / 0.804, against volume without NMS 0.906 and frozen 0.985. NMS does not help.
+- Doc: `docs/CROP05_ROOT_CAUSE.md`. Tables: `results/flatten_fix/summary.csv`, `results/extinction/summary.csv`, `results/all_runs.csv`.
