@@ -1,0 +1,4 @@
+crop_id,e13_r_est,r_ps_peak,r_ps_median,r_edt_localmax_median,otsu_fg_fraction,gt_label_fraction,n_valid_gt,gt_median_r_eq,gt_median_inscribed_r,openrec_r_frozen,openrec_r_from_ps_peak
+EFRGP01_00_crop04,10.198039027185569,10,10.0,2.0,0.655,0.675,272,14.319,10.63,15,15
+EFRGP01_00_crop05,9.0,11,10.0,2.236,0.374,0.324,129,14.35,10.63,14,16
+EFRGP01_01_crop05,8.0,11,10.0,2.236,0.378,0.328,128,14.362,10.63,12,16

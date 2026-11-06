@@ -555,3 +555,20 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
 - Side check (GT for diagnosis only): e13 r_est 10.20 / 9.00 / 8.00 (crop04 / 00_crop05 / 01_crop05) vs median GT
   r_eq 14.32 / 14.35 / 14.36 → underestimates by 29 / 37 / 44 %, more on the gate-firing crops.
 - Write-up: `docs/EXTINCTION_SELECTOR.md`; tables `results/extinction/`; 6 rows appended to `results/all_runs.csv`.
+
+## 2026-11-06 — Phase 5c follow-up A (uniqueness / scale window) and Phase 5b side study B (scale estimator)
+- Code 37c9b83 (+ driver failure handling, this commit). Crops: 00_crop04, 00_crop05, 01_crop05 only. Every stage
+  peaked ≤ 3.66 GB, run in sequence. Logs: `C:\BA_TOS_DATA\runs\followup_AB.log`, `followup_A2.log`.
+- A (crop04 F1@0.50): volume_unique 0.460 (1,307 markers, 244 split: 19,230 internal fragments), scale window
+  r_est 0.065 / r_ps_peak 0.111 (39–57 markers), literal grey-volume window 0.508. Frozen 0.985, volume v1 0.906.
+  Target 0.98 not met. volume_unique_scale breaks on both crop05 (0 candidates → e10 KeyError on the empty CSV;
+  recorded FAILED, deterministic).
+- B: pattern-spectrum peak of e13's Otsu foreground = 10 / 11 / 11; e13 r_est 10.20 / 9.00 / 8.00. GT median
+  **inscribed** radius 10.63 on all three crops (GT r_eq 14.3; non-spherical grains, ratio 1.35). This corrects the
+  earlier side check: e13 underestimates on crop05 only (−15 / −25 %). EDT local-max median 2.0–2.2 (noise).
+- B rerun (openrec radius 15 / 16 / 16 via `openrec_lowmem`, bit-identical to frozen at r = 15): crop04 identical to frozen
+  (0.985). crop05 gate still fires (2 / 4, 2 / 3), ToS 0.007 / 0.016. sel 0.722 (from 0.260) / 0.702 (from 0.807),
+  driven by the count-matched EDT-Otsu fallback (ToS markers 53 → 254, 191 → 364). The scale estimate is NOT the root
+  cause of the crop05 collapse.
+- Docs: `docs/SCALE_ESTIMATOR.md` (new), `docs/EXTINCTION_SELECTOR.md` §7. Tables: `results/scale/`,
+  `results/extinction/summary.csv`; 18 rows upserted in `results/all_runs.csv`.

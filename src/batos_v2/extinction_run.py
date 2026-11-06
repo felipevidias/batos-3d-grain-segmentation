@@ -217,6 +217,21 @@ def main(argv=None) -> int:
                 extra += ["--scale-radius", r, "--scale-on", args.scale_on]
                 label = f"extinction_{v}_{tag}" + ("_greyvol" if args.scale_on == "volume_extinction" else "")
             out = ROOT / label.removeprefix("extinction_") / crop
+            if (out / "FAILED").exists():
+                # deterministic method failure recorded earlier (e.g. 0 candidates): report, do not re-run
+                info = {}
+                ipath = out / "e11" / "selector" / "extinction_selector_info.json"
+                if ipath.exists():
+                    info = json.loads(ipath.read_text(encoding="utf-8"))
+                reason = (out / "FAILED").read_text(encoding="utf-8").strip().splitlines()[-1]
+                for route in ("BA-TOS_ToS", "BA-TOS_sel"):
+                    rows.append({"crop_id": crop, "variant": label, "route": route, "failed": reason,
+                                 "num_selected": info.get("num_selected"),
+                                 "pool_in_scale_window": info.get("pool_in_scale_window"),
+                                 "components_with_minimum": info.get("components_with_minimum"),
+                                 "scale_radius": info.get("scale_radius")})
+                print(f"[ext] {crop} {label}: FAILED ({reason})", flush=True)
+                continue
             if not (out / "DONE").exists():
                 if out.exists():
                     raise RuntimeError(f"partial run folder exists, inspect and remove it first: {out}")
@@ -225,7 +240,23 @@ def main(argv=None) -> int:
                 run = ExtinctionRun(crop, param, "replace_selector", v, out, RamBudget(args.ram_gb), keep_tifs=True)
                 run.extra_args = extra
                 run.note = f"true_dual replaced by batos_v2.extinction_selector {v} {extra} (flags['true_dual'] unused)"
-                run.execute()
+                try:
+                    run.execute()
+                except Exception as exc:  # noqa: BLE001 — recorded, the next job runs
+                    info = {}
+                    ipath = out / "e11" / "selector" / "extinction_selector_info.json"
+                    if ipath.exists():
+                        info = json.loads(ipath.read_text(encoding="utf-8"))
+                    why = f"{exc!r}" + (" [selector returned 0 candidates]" if info.get("num_selected") == 0 else "")
+                    (out / "FAILED").write_text(why + "\n", encoding="utf-8")
+                    for route in ("BA-TOS_ToS", "BA-TOS_sel"):
+                        rows.append({"crop_id": crop, "variant": label, "route": route, "failed": why,
+                                     "num_selected": info.get("num_selected"),
+                                     "pool_in_scale_window": info.get("pool_in_scale_window"),
+                                     "components_with_minimum": info.get("components_with_minimum"),
+                                     "scale_radius": info.get("scale_radius")})
+                    print(f"[ext] {crop} {label}: FAILED {why}", flush=True)
+                    continue
                 rec = json.loads((out / "run.json").read_text(encoding="utf-8"))
                 rec["git"] = git
                 (out / "run.json").write_text(json.dumps(rec, indent=2, default=str), encoding="utf-8")
@@ -235,9 +266,10 @@ def main(argv=None) -> int:
             runs += r2
     upsert(RESULTS / "summary.csv", rows, ["crop_id", "variant", "route"])
     upsert(REPO_ROOT / "results" / "all_runs.csv", runs, ["experiment_id", "method"])
-    print(pd.DataFrame(rows)[["crop_id", "variant", "route", "n_markers", "grains_seeded", "grains_split",
-                              "gate_triggered", "gate_mv", "gate_qv", "f1_050", "f1_075",
-                              "max_stage_peak_mb"]].to_string(index=False), flush=True)
+    print(pd.DataFrame(rows).reindex(columns=["crop_id", "variant", "route", "n_markers", "grains_seeded",
+                                              "grains_split", "gate_triggered", "gate_mv", "gate_qv", "f1_050",
+                                              "f1_075", "max_stage_peak_mb", "failed"]).to_string(index=False),
+          flush=True)
     return 0
 
 

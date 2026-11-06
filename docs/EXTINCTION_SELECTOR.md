@@ -98,3 +98,64 @@ that the openrec radius is the most sensitive single setting (factor 0.75 collap
   component before e11.
 - K matched to the frozen MIN count (1800) as a GT-free control.
 - Only after a variant reaches the target on crop04: the 12 development crops, then frozen before Test.
+
+## 7. Follow-up A (2026-11-06): uniqueness and scale window — target not met
+
+Code commit 37c9b83 (`extinction_selector.py` variants `volume_unique`, `volume_unique_scale`; `extinction_run.py`
+multi-crop). Crops: crop04 plus both crop05. Results: `results/extinction/summary.csv` (supersedes
+`EFRGP01_00_crop04_summary.csv`, adds grains split), rows in `results/all_runs.csv` (`phase5_extinction_*`).
+Both variants are ranked by volume extinction, and both rules are applied **before** the top-K = 3600 cut.
+
+- **volume_unique:** one minimum per 6-connected component of the internal-dark mask (`--internal-source`, as in e10).
+  A minimum's component = the component holding most of its extremum flat zone. This is a pre-selection stand-in for
+  its exclusive support, which only exists once the selection is made. Minima outside every component are dropped,
+  because the e11 builder discards them anyway.
+- **volume_unique_scale:** as above, but first keeps only minima whose extinction region has a voxel count in
+  [0.05, 2.0] × (4/3)πr³.
+  - **Units:** `hg.attribute_volume` is grey-weighted (voxels × grey levels), while (4/3)πr³ is in voxels, so the window is applied
+    to the voxel count of the extinction region (the branch top of the volume competition). The literal reading,
+    a window on the grey-weighted value, was also run on crop04 (`_greyvol`).
+  - **Radius:** r = e13 r_est (as specified), and also r_ps_peak from `docs/SCALE_ESTIMATOR.md`.
+
+### crop04 (272 valid grains; ToS = sel, gate off in every run)
+
+| variant | selected | markers | seeded | split | P@0.50 | R@0.50 | **F1@0.50** | F1@0.75 |
+|---|---|---|---|---|---|---|---|---|
+| frozen weighted | 1,800 MIN | 398 | 268 | 0 | 0.993 | 0.978 | **0.985** | 0.978 |
+| volume (v1) | 3,600 | 477 | 271 | 47 | 0.833 | 0.993 | **0.906** | 0.906 |
+| volume_unique | 3,600 of 10,720 components | 1,307 | 272 | 244 | 0.300 | 0.989 | **0.460** | 0.452 |
+| volume_unique_scale, r_est 10.20 | 42 (62 in window) | 39 | 36 | 0 | 0.278 | 0.037 | **0.065** | 0.058 |
+| volume_unique_scale, r_ps_peak 10 | 60 (83 in window) | 57 | 51 | 0 | 0.353 | 0.066 | **0.111** | 0.093 |
+| volume_unique_scale, r_est, literal grey-volume window | 708 (3,394 in window) | 303 | 176 | 30 | 0.587 | 0.449 | **0.508** | 0.450 |
+
+### crop05 (129 / 128 valid grains)
+
+| variant | crop | markers | seeded / split (sel) | gate (mv / qv) | ToS F1@0.50 | sel F1@0.50 | frozen sel |
+|---|---|---|---|---|---|---|---|
+| volume_unique | 00_crop05 | 1,620 | 129 / 89 | fires (1 / 2) | 0.016 | 0.215 | 0.260 |
+| volume_unique | 01_crop05 | 810 | 128 / 69 | fires (1 / 2) | 0.067 | 0.620 | 0.807 |
+| volume_unique_scale (r_est and r_ps_peak) | both | — | — | — | **breaks** | **breaks** | |
+
+"Breaks" means **0 candidates**. Only 0–46 minima fall in the scale window and none of them lies in an internal-dark
+component, so the frozen e10 fails on the empty CSV (`KeyError: has_reconstructed_region`). This is deterministic,
+recorded as `FAILED`, and not re-run.
+
+### Reading
+1. **Uniqueness makes it worse, not better (0.906 → 0.460).** The internal-dark mask is fragmented: 19,230
+   components on crop04, 17,120 / 15,596 on the crop05 pair, against ~272 / 129 grains. Applying one-per-component
+   before the top-K cut spreads the 3,600 candidates over 3,600 different fragments. The e11 builder then emits one marker
+   per fragment (1,307 markers, 244 split grains). The frozen selector avoids splits because its candidates concentrate
+   in the core fragment of each grain; uniqueness over fragments removes exactly that concentration.
+2. **The scale window removes almost everything.** The extinction region of most minima is far smaller than a grain:
+   only 62–83 of 238,168 minima on crop04 reach 5 % of a grain volume. In this ToS the grain-core minima lose their
+   branch early, against noise siblings inside the grain, so the extinction-region size is not a grain size. Recall
+   collapses on crop04, and crop05 has no candidates at all.
+3. The literal grey-volume window keeps 3,394 minima but still mixes units. It lands in between (0.508).
+4. None of the extinction variants reaches 0.98. The best remains plain volume extinction (0.906). Over-seeding
+   (split grains) is the failure mode of every variant with high recall, and under-seeding of every variant that
+   avoids splits. The frozen area prior is doing work that these rules do not replace.
+
+### Possible next step (not run)
+Make the uniqueness unit the **grain**, not the internal fragment. For example, group fragments by connectivity within
+distance r_ps_peak, or merge selected minima whose representative regions lie within one inscribed radius (≈ 10.6)
+of each other. Freeze the result on crop04 before touching other crops.
