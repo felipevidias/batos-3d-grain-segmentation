@@ -667,3 +667,19 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   radius 15 (= v2's), specimen fraction crop05 0.49 / crop03 0.78 / crop06 0.97 (cf. geometry estimate 0.50/0.79/0.92).
   r_ref (dev median) = 10.
 - openrec_lowmem timing at r = 22 on a dev crop: 157 s (kept for r > 15).
+
+## 2026-11-07 — Phase 5e step 2: v3 constants, patched copies, driver (dev crops only)
+
+- `src/batos_v3/constants.py` (every pipeline constant, kind L/V/N/VF/D/Q/R/X/T, v3 rule; R_REF = 10),
+  `src/batos_v3/make_patched.py` → `src/batos_v3/patched/` (e11 watershed + controls: min_component 500 and closing
+  iterations 1 exposed; e23c: gate limits 3/4 exposed; defaults = frozen), `src/batos_v3/pipeline.py` (presets
+  fixflat and v3). Design record: `docs/V3_SCALE_FREE.md`.
+- Intensity-guard audit over 115 dev+test runs: stage-03 center-dark-max / min-ring-contrast 0 rejections (removed);
+  stage-04 center-dark-max 3 rejections of 1.93 M (removed); stage-04 min-ring-contrast 130k rejections (kept, R).
+- Design iteration 2 (before any v3 run): gate limits scaled v2·max(1, s³) instead of v2·s³ (at s = 0.7 v2·s³ gives
+  m_v ≤ 1.03, which can no longer detect a 2–3-voxel collapse).
+- Checks: fixflat preset bit-identical to batos-paper-v2-fixflat on EFRGP01_00_crop04 (ToS and sel SHA-256).
+  v3 on EFRGP01_00_crop04: F1@0.50 0.985 (stage-03 threshold 117 vs v2 107); EFRGP01_00_crop05: 1.000 (115 vs 97).
+- Synthetic crops: `scripts/make_synthetic_scale.py` → 36 crops (12 dev × f 0.7 / 1.4 / 2.0, centred affine resample
+  of the full volumes, linear gray / nearest labels; f = 1 identity verified against every dev crop),
+  `data/metadata/crops_synth_scale.json`, `crops_manifest_synth.csv`; valid GT ≥ round(1000 f³).

@@ -1,0 +1,66 @@
+{
+ "e11_watershed": {
+  "source": "C:\\BA_TOS_DATA\\linux_import\\chat_recovered\\e13_crop05_metadata_full_20260725_182408\\audit\\e11_run_fixed_mask_watershed.py",
+  "source_sha256": "8995f745ebaface9a2e2170a8796257649078135b70663a68752899209dc985d",
+  "copy": "e11_run_fixed_mask_watershed_v3.py",
+  "copy_sha256": "3e19c67afae2b7bd6bea3759425bfc739dc0d7e745f6e896a3fd4b00bb733405",
+  "replacements": [
+   [
+    "    min_component: int = 500,\n) -> tuple[np.ndarray, float]:",
+    "    min_component: int = 500,\n    closing_iterations: int = 1,\n) -> tuple[np.ndarray, float]:"
+   ],
+   [
+    "        iterations=1,",
+    "        iterations=int(closing_iterations),"
+   ],
+   [
+    "    return parser.parse_args()",
+    "    # batos_v3 patch: hard-coded mask constants exposed (defaults = frozen values)\n    parser.add_argument(\"--v3-min-component\", type=int, default=500)\n    parser.add_argument(\"--v3-closing-iterations\", type=int, default=1)\n    return parser.parse_args()"
+   ],
+   [
+    "clean_bright_otsu_mask(image_norm)",
+    "clean_bright_otsu_mask(image_norm, args.v3_min_component, args.v3_closing_iterations)"
+   ]
+  ]
+ },
+ "e11_controls": {
+  "source": "C:\\BA_TOS_DATA\\linux_import\\chat_recovered\\e13_crop05_metadata_full_20260725_182408\\audit\\e11_build_control_markers.py",
+  "source_sha256": "6ce55b8c16769bc4134f6e91e4317a76ac18786865462d52d2526dfce8f7d953",
+  "copy": "e11_build_control_markers_v3.py",
+  "copy_sha256": "02b13fa2a54c1b531bdd82fb287e34859ffc2a21281e1e700fbc03dfba3b362f",
+  "replacements": [
+   [
+    "    min_component: int = 500,\n) -> tuple[np.ndarray, float]:",
+    "    min_component: int = 500,\n    closing_iterations: int = 1,\n) -> tuple[np.ndarray, float]:"
+   ],
+   [
+    "        iterations=1,",
+    "        iterations=int(closing_iterations),"
+   ],
+   [
+    "    return parser.parse_args()",
+    "    # batos_v3 patch: hard-coded mask constants exposed (defaults = frozen values)\n    parser.add_argument(\"--v3-min-component\", type=int, default=500)\n    parser.add_argument(\"--v3-closing-iterations\", type=int, default=1)\n    return parser.parse_args()"
+   ],
+   [
+    "clean_bright_otsu_mask(image_norm)",
+    "clean_bright_otsu_mask(image_norm, args.v3_min_component, args.v3_closing_iterations)"
+   ]
+  ]
+ },
+ "e23c_route": {
+  "source": "C:\\BA_TOS_DATA\\linux_import\\linux_patches\\e23c_selective_router_bundle\\e23c_build_selective_marker_route.py",
+  "source_sha256": "043a0598c3bb0a02afab1b023c8fb6ec7e96d22dd9495b5e25a3c8403c590dcc",
+  "copy": "e23c_build_selective_marker_route_v3.py",
+  "copy_sha256": "d4db139e1fbbf65075794f77dc8ca52bb1ca8f6bc226e76a0c492c0f3d2a6c27",
+  "replacements": [
+   [
+    "    return parser.parse_args()",
+    "    # batos_v3 patch: gate limits exposed (defaults = frozen values)\n    parser.add_argument(\"--v3-median-limit\", type=float, default=MEDIAN_LIMIT)\n    parser.add_argument(\"--v3-q75-limit\", type=float, default=Q75_LIMIT)\n    return parser.parse_args()"
+   ],
+   [
+    "def main() -> int:\n    args = parse_args()",
+    "def main() -> int:\n    global MEDIAN_LIMIT, Q75_LIMIT\n    args = parse_args()\n    MEDIAN_LIMIT, Q75_LIMIT = float(args.v3_median_limit), float(args.v3_q75_limit)"
+   ]
+  ]
+ }
+}
