@@ -683,3 +683,14 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
 - Synthetic crops: `scripts/make_synthetic_scale.py` → 36 crops (12 dev × f 0.7 / 1.4 / 2.0, centred affine resample
   of the full volumes, linear gray / nearest labels; f = 1 identity verified against every dev crop),
   `data/metadata/crops_synth_scale.json`, `crops_manifest_synth.csv`; valid GT ≥ round(1000 f³).
+
+## 2026-11-07 — Phase 5e step 3: synthetic scale test PAUSED (checkpoint, partial)
+
+- Paused at 14:2x on user request (PC shutdown). Run killed cleanly between crops (EFRGP01_00_crop03_x2 was in openrec; its
+  partial run dir will be wiped and redone on resume). 25 of 48 crop evaluations complete: f = 1.0 (12), f = 1.4 (12), f = 2.0 (1).
+- Partial crop-macro F1@0.50 (markers/dominant, no filter, BA-TOS_sel; ToS identical):
+  f 1.0 fixflat 0.976 ± 0.023 / v3 0.989 ± 0.008; f 1.4 fixflat 0.750 ± 0.372 (2 crashes "no MIN candidate", scored 0) / v3 0.995 ± 0.007;
+  f 2.0 (1 crop, 00_crop02) fixflat 0.000 / v3 1.000. Step-3 criterion at 1.0 met (no design iteration needed so far).
+- Peak memory ≤ ~3.1 GB per stage. Tables in `results/v3_scale_test/` are PARTIAL and will be regenerated at the end.
+- Resume: `C:\BA_TOS_DATA\envs\batos-py312\Scripts\python.exe -I scripts/run_v3_scale_test.py` (skips DONE/EMPTY/FAILED runs and
+  existing eval JSONs), then `python -I scripts/aggregate_v3_scale_test.py`. Remaining: 11 crops at f 2.0, 12 at f 0.7.
