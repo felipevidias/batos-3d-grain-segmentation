@@ -655,3 +655,15 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   (experiment_id `test_protocol_<method>/<crop>`). `results/sensitivity/global_sensitivity.csv` left uncommitted (user sweep).
 - Next (needs the user's decision): Phase 5d (queued); any scale/stage-03 remedy is a method change → dev design, re-freeze,
   new held-out set.
+
+## 2026-11-07 — Phase 5e step 1: v3 scale source r_granulo (dev crops only)
+
+- Decision (user): BA-TOS v3 (scale-free) designed on the 12 EFR dev crops + a synthetic scale test only; the 52 test
+  crops stay untouched until v3 is frozen.
+- `src/batos_v3/scale.py`: two-pass r_granulo = argmax of the binary pattern spectrum (exact EDT ball openings,
+  r = 2..40) of the specimen-only Otsu foreground; specimen = fill_holes(LCC(closing(fg0, ball(2 r0)))).
+- Iteration 0 (raw Otsu foreground): r_granulo = 7 on all 12 dev crops (enclosed noise cavities cap the EDT).
+  Iteration 1: fill_holes (parameter-free) on both passes → r_granulo = 10 on all 12 dev crops (r0 = 10–11), openrec
+  radius 15 (= v2's), specimen fraction crop05 0.49 / crop03 0.78 / crop06 0.97 (cf. geometry estimate 0.50/0.79/0.92).
+  r_ref (dev median) = 10.
+- openrec_lowmem timing at r = 22 on a dev crop: 157 s (kept for r > 15).
