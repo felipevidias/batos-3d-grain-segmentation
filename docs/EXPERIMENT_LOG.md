@@ -629,3 +629,29 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
 - Development-set result; to be frozen before any test crop.
 - Report: `results/batos_v2_fixflat/REPORT.md`. Scripts: `scripts/aggregate_fixflat.py`, `scripts/check_fixflat_identity.py`.
   48 rows in `results/all_runs.csv`. Tag `batos-paper-v2-fixflat`.
+
+## 2026-11-06/07 — Phase 1f: test protocol, frozen vs fixflat on 52 held-out crops (6 specimens)
+
+- Method under test frozen beforehand: `configs/batos_paper_v2_fixflat.yaml` (tag `batos-paper-v2-fixflat`). No parameter
+  changes. Inventory `data/metadata/dataset_inventory.md`; crops `data/metadata/crops_test.json` (GT-free rule, seed
+  20261106, committed 4a72daa before cutting); cut by `scripts/extract_and_cut.py` (52 crops, 8,614 valid GT; extracts
+  deleted, EFR `gt_full` kept).
+- Run: `python -I scripts/run_test_protocol.py` (sequential, peak ≤ 3.7 GB), 16:03 → 23:42. All 51 runs used the frozen
+  openrec_v2 (lowmem never triggered). e13 padded to 12 rows per specimen, padding checked identical.
+- Deviation: the first pipeline crash (fixflat EMSGP01_00_test01, e11 "no MIN candidate inside internal_dark") stopped the
+  run at crop 29; the driver now records crashes in `FAILED.json` and scores them as empty segmentations (F1 0), then
+  resumed. 5 crashes total (4 fixflat, 1 frozen: EOSGP01_00_test03, where fixflat could not run either; scored 0).
+- Results (crop-macro F1@0.50, sel, filter off): EFR_internal frozen 0.879 ± 0.223 → fixflat 0.956 ± 0.048 (filter 500:
+  0.985 ± 0.021); EFS 0.882 → 0.968; EMR 0.303 → 0.250; EMS 0.432 → 0.479; EOR 0.293 → 0.238; EOS 0.265 → 0.365;
+  all 52: 0.538 → 0.575. Pooled F1@0.50: EFR 0.929 → 0.967; all 0.700 → 0.752. Fixflat gate never fires on EF; frozen
+  gate fires on 5 EF boundary crops (crop05 signature reproduced).
+- Forensics (`scripts/forensics_test_protocol.py`, `results/test_protocol/forensics_stages.csv`): 25 flagged crops. The
+  M/O collapse diverges at stage 03 (frozen `batos_background.py`): dark threshold min(Otsu−10, p40, 135) falls to the
+  p40 branch, the dark phase percolates, all seeds rejected as external. Branch separates fixflat F1 completely
+  (p40: 20 crops ≤ 0.21; Otsu: 31 crops ≥ 0.65). For interior crops the branch follows the openrec radius (15 → Otsu,
+  ≤ 12 → p40), and e13 underestimates the radius ≈ 2× on M/O grains (7–8 vs GT inscribed 14.5–15.3; granulometric
+  estimate 14–15). The fixflat gain is the same stage: 14 of 21 frozen-p40 boundary crops move to the Otsu branch.
+- Nothing tuned. Report `results/test_protocol/REPORT.md`; 832 rows in `results/all_runs.csv`
+  (experiment_id `test_protocol_<method>/<crop>`). `results/sensitivity/global_sensitivity.csv` left uncommitted (user sweep).
+- Next (needs the user's decision): Phase 5d (queued); any scale/stage-03 remedy is a method change → dev design, re-freeze,
+  new held-out set.

@@ -107,13 +107,31 @@ def run_frozen(crop: str) -> None:
                              "--runs-root", str(FROZEN_ROOT), "--openrec-impl", "auto"],
                             stdout=h, stderr=subprocess.STDOUT, cwd=REPO / "src").returncode
     if rc != 0:
-        raise RuntimeError(f"frozen failed on {crop} (rc {rc}); see {ROOT / 'logs' / f'{crop}_frozen.log'}")
+        # Pipeline failure of the method under test: recorded, evaluated as an empty segmentation (no tuning, no retry).
+        write_failed(out, "frozen", f"rc {rc}; see {ROOT / 'logs' / f'{crop}_frozen.log'}", time.time() - t0)
+        return
     log(f"{crop} frozen done in {time.time() - t0:.0f}s")
+
+
+def write_failed(out: Path, method: str, error: str, seconds: float) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "FAILED.json").write_text(json.dumps({"method": method, "error": error, "seconds": round(seconds, 1),
+                                                 "time": dt.datetime.now().isoformat(timespec="seconds")}, indent=1),
+                                     encoding="utf-8")
+    log(f"{out.name} {method} FAILED after {seconds:.0f}s: {error}")
+
+
+def failed(base: Path) -> dict | None:
+    p = base / "FAILED.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
 def run_fixflat(crop: str, git: dict) -> None:
     out = FIX_ROOT / crop
-    if (out / "DONE").exists():
+    if (out / "DONE").exists() or (out / "FAILED.json").exists():
+        return
+    if failed(FROZEN_ROOT / crop):
+        write_failed(out, "fixflat", "frozen upstream (scale/openrec) failed", 0.0)
         return
     if out.exists():
         shutil.rmtree(out)
@@ -123,7 +141,13 @@ def run_fixflat(crop: str, git: dict) -> None:
     t0 = time.time()
     run = FlattenFixRun(crop, param, "fix", "A", out, sensitivity.RamBudget(8.0), keep_tifs=True)
     run.note = "flatten stage = batos_v2.flatten_fixed --variant A; everything else frozen (test protocol)"
-    run.execute()
+    try:
+        run.execute()
+    except RuntimeError as e:
+        write_failed(out, "fixflat", f"{e}", time.time() - t0)
+        rec = json.loads((out / "FAILED.json").read_text(encoding="utf-8")) | {"steps": run.steps}
+        (out / "FAILED.json").write_text(json.dumps(rec, indent=1, default=str), encoding="utf-8")
+        return
     rec = json.loads((out / "run.json").read_text(encoding="utf-8"))
     info = json.loads((out / "pipe" / "01_preprocess" / "flatten_fixed_info.json").read_text(encoding="utf-8"))
     rec |= {"git": git, "bg_ref": info["bg_ref"]}
@@ -162,10 +186,15 @@ def evaluate_crop(crop: str, c: dict) -> None:
     t0 = time.time()
     gt = tifffile.imread(c["gt_path"])
     rows = []
+    fail = {"frozen": failed(FROZEN_ROOT / crop), "fixflat": failed(FIX_ROOT / crop)}
     for method, base in (("frozen", FROZEN_ROOT / crop), ("fixflat", FIX_ROOT / crop)):
         for route, (ws, label) in ROUTES.items():
-            pred = tifffile.imread(base / ws / "segmentations" / f"{label}_distance_c1.tif")
-            markers = tifffile.imread(base / ws / "normalized_markers" / f"{label}.tif")
+            if fail[method]:  # failed run = empty segmentation: every valid GT grain is a FN
+                pred = np.zeros(gt.shape, np.uint32)
+                markers = np.zeros(gt.shape, np.uint32)
+            else:
+                pred = tifffile.imread(base / ws / "segmentations" / f"{label}_distance_c1.tif")
+                markers = tifffile.imread(base / ws / "normalized_markers" / f"{label}.tif")
             for flt in ("none", "500"):
                 p = pred if flt == "none" else size_filter(pred)
                 for mode, kw in MODES.items():
@@ -173,10 +202,14 @@ def evaluate_crop(crop: str, c: dict) -> None:
                     rows.append({"crop_id": crop, "specimen": c["specimen"], "scan": c["scan"],
                                  "test_class": c["test_class"], "method": method, "route": route,
                                  "size_filter": flt, "mode": mode, **m})
-    frec = json.loads((FROZEN_ROOT / crop / "frozen_run.json").read_text(encoding="utf-8"))
-    xrec = json.loads((FIX_ROOT / crop / "run.json").read_text(encoding="utf-8"))
+    fpath = FROZEN_ROOT / crop / "frozen_run.json"
+    frec = json.loads(fpath.read_text(encoding="utf-8")) if fpath.exists() else {}
+    xrec = fail["fixflat"] or json.loads((FIX_ROOT / crop / "run.json").read_text(encoding="utf-8"))
     gate = {}
     for method, rec in (("frozen", frec), ("fixflat", xrec)):
+        if fail[method]:
+            gate[method] = {"gate_triggered": None, "mv": None, "qv": None}
+            continue
         g = rec["route"].get("gate", rec["route"]) if method == "frozen" else rec["gate"]
         gate[method] = {"gate_triggered": bool(g["gate_triggered"]), "mv": g["region_voxels_median"],
                         "qv": g["region_voxels_q75"]}
@@ -189,18 +222,19 @@ def evaluate_crop(crop: str, c: dict) -> None:
     rin = inscribed_radii(gt)
     info = {"crop_id": crop, "specimen": c["specimen"], "scan": c["scan"], "test_class": c["test_class"],
             "specimen_fraction_sub4": c["specimen_fraction_sub4"],
-            "r_est_e13": frec["auto_params"]["estimated_grain_radius"],
-            "openrec_radius": frec["openrec_radius"], "openrec_implementation": frec.get("openrec_implementation"),
+            "r_est_e13": frec.get("auto_params", {}).get("estimated_grain_radius"),
+            "openrec_radius": frec.get("openrec_radius"), "openrec_implementation": frec.get("openrec_implementation"),
             "r_ps_peak": gran.get("r_ps_peak"), "r_ps_median": gran.get("r_ps_median"),
             "gt_inscribed_r_median": float(np.median(rin)) if rin.size else None, "gt_valid_n": int(rin.size),
             "bg_ref_fixflat": xrec.get("bg_ref"),
             **{f"{m}_{k}": v for m, g in gate.items() for k, v in g.items()},
             "frozen_tos_markers": n_markers["frozen"], "fixflat_tos_markers": n_markers["fixflat"],
-            "frozen_seconds": frec["seconds_total"], "frozen_peak_mb": frec.get("peak_memory_mb"),
-            "fixflat_seconds_flatten_onward": round(sum(s["seconds"] for s in xrec["steps"]), 1),
-            "fixflat_peak_mb": max(s.get("peak_memory_mb", 0) for s in xrec["steps"]),
-            "eval_seconds": None}
-    upstream = sum(s["seconds"] for s in frec["steps"] if s["step"] in ("scale", "openrec_v2"))
+            "frozen_seconds": frec.get("seconds_total", (fail["frozen"] or {}).get("seconds")), "frozen_peak_mb": frec.get("peak_memory_mb"),
+            "fixflat_seconds_flatten_onward": round(sum(s["seconds"] for s in xrec.get("steps", [])), 1),
+            "fixflat_peak_mb": max([s.get("peak_memory_mb", 0) for s in xrec.get("steps", [])] or [None]),
+            "eval_seconds": None,
+            "frozen_failed": fail["frozen"]["error"] if fail["frozen"] else None, "fixflat_failed": fail["fixflat"]["error"] if fail["fixflat"] else None}
+    upstream = sum(s["seconds"] for s in frec.get("steps", []) if s["step"] in ("scale", "openrec_v2"))
     info["fixflat_seconds_end_to_end"] = round(info["fixflat_seconds_flatten_onward"] + upstream, 1)
     info["eval_seconds"] = round(time.time() - t0, 1)
     (ROOT / "eval").mkdir(parents=True, exist_ok=True)

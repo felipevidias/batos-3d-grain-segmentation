@@ -100,12 +100,13 @@ def main() -> int:
                  "| r_est e13 | r_ps_peak | GT r_in | openrec r (impl) | frozen s / peak MB | fixflat s / peak MB |")
     lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for cid, r in wide.iterrows():
-        gf = f"{'FIRES' if r.frozen_gate_triggered else 'off'} ({r.frozen_mv:g}/{r.frozen_qv:g})"
-        gx = f"{'FIRES' if r.fixflat_gate_triggered else 'off'} ({r.fixflat_mv:g}/{r.fixflat_qv:g})"
+        gf, gx = (("CRASH" if isinstance(fl, str) else f"{'FIRES' if t is True else 'off'} ({mv:g}/{qv:g})")
+                  for fl, t, mv, qv in ((r.frozen_failed, r.frozen_gate_triggered, r.frozen_mv, r.frozen_qv),
+                                        (r.fixflat_failed, r.fixflat_gate_triggered, r.fixflat_mv, r.fixflat_qv)))
         impl = "lowmem" if r.openrec_implementation == "openrec_lowmem" else "frozen"
         lines.append(f"| {cid} | {r.test_class} | {r.specimen_fraction_sub4:.2f} | {r.frozen_ToS_f1_050:.3f} / "
                      f"{r.frozen_sel_f1_050:.3f} | {r.fixflat_ToS_f1_050:.3f} / {r.fixflat_sel_f1_050:.3f} | {gf} | {gx} "
-                     f"| {r.r_est_e13:.2f} | {r.r_ps_peak} | {r.gt_inscribed_r_median:.2f} | {r.openrec_radius} ({impl}) "
+                     f"| {r.r_est_e13:.2f} | {r.r_ps_peak} | {r.gt_inscribed_r_median:.2f} | {r.openrec_radius:g} ({impl}) "
                      f"| {r.frozen_seconds:.0f} / {r.frozen_peak_mb:.0f} | {r.fixflat_seconds_end_to_end:.0f} / "
                      f"{r.fixflat_peak_mb:.0f} |")
     (OUT / "tables.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
