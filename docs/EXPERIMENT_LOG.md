@@ -694,3 +694,17 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
 - Peak memory ≤ ~3.1 GB per stage. Tables in `results/v3_scale_test/` are PARTIAL and will be regenerated at the end.
 - Resume: `C:\BA_TOS_DATA\envs\batos-py312\Scripts\python.exe -I scripts/run_v3_scale_test.py` (skips DONE/EMPTY/FAILED runs and
   existing eval JSONs), then `python -I scripts/aggregate_v3_scale_test.py`. Remaining: 11 crops at f 2.0, 12 at f 0.7.
+
+## 2026-11-08 — Phase 5e step 3: synthetic scale test COMPLETE (48/48)
+
+- Resumed 2026-11-07 23:53. The one partial run dir (`fixflat/x2/EFRGP01_00_crop03_x2`, stopped in openrec) was deleted;
+  the 25 complete evaluations were kept; the 23 missing crops (11 × f 2.0, 12 × f 0.7) were rerun with the same settings,
+  END 05:01. Ran concurrently with the user's sensitivity sweep (`--groups markers`, 6 workers), so runtimes are inflated.
+- Crop-macro F1@0.50 sel, no filter, fixflat → v3: f 0.7 0.999 → 0.975; f 1.0 0.976 → 0.989; f 1.4 0.750 → 0.995;
+  f 2.0 0.239 → 0.938. Own size filter (500 / 500 s³): 1.000 → 0.995; 0.983 → 0.990; 0.824 → 1.000; 0.383 → 1.000.
+  Pooled F1@0.50 (no filter): 0.999 → 0.978; 0.979 → 0.988; 0.819 → 0.995; 0.277 → 0.947.
+- r_granulo = 7 / 10 / 14 / 20–21 vs GT r_in 7.35 / 10.63 / 14.44 / 20.52; e13 saturates (10.0 at f 1.4, 12.6 at f 2.0).
+  fixflat crashes ("no MIN candidate inside internal_dark"): 2 at f 1.4, 6 at f 2.0. v3: 0 crashes, 0 empty. Gate never fires.
+- v3 below 0.90 (no filter): both crop05 at f 2.0 (0.667, 0.621; 9 valid GT, 9 and 11 sub-filter fragments; with the
+  500 s³ filter 1.000). v3 is behind fixflat at f 0.7 without the filter (351 small FP fragments vs 13; filtered 0.995 vs 1.000).
+  Reported, not tuned. Step-3 criterion met; no design iteration. Report `results/v3_scale_test/REPORT.md`.
