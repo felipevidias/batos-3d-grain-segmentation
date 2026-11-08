@@ -1,0 +1,261 @@
+# batos-paper-v3-scalefree — FROZEN method under test (Phase 5e step 4).
+# Designed on the 12 EFR dev crops + synthetic scale test only. No parameter, code or threshold may change
+# before the 52-crop test results are reported. scripts/run_test_v3.py checks every hash below.
+preset: batos-paper-v3-scalefree
+git_tag: batos-paper-v3-scalefree
+git_commit_code: a853e83a0f7711b36867636a6aa3a1a3f21f0ecd
+frozen_on: '2026-11-08'
+status: frozen_for_test
+method:
+  base: batos-paper-v2-fixflat (stage order and frozen scripts of batos_v2.sensitivity.CropRun)
+  scale: r_granulo = argmax of the specimen-only binary pattern spectrum, r = 2..40 (batos_v3.scale)
+  s: r_granulo / R_REF
+  R_REF: 10.0
+  openrec_radius: max(8, round(1.5 r_granulo)); openrec_lowmem (bit-identical) above 15
+  stage03_dark_threshold: Otsu of the selector on specimen voxels (--dark-threshold)
+  empty_rule: e11 'no MIN candidate inside internal_dark' -> recorded empty result (F1 0)
+  gate: E23c median(region_voxels) <= 3 max(1, s^3) and q75 <= 4 max(1, s^3) -> EDT-Otsu
+  size_filter: 500 s^3 (reported alongside filter off and 500)
+  constants: src/batos_v3/constants.py TABLE (kinds L/V/VF/N/D/Q/R/X/T); docs/V3_SCALE_FREE.md
+evaluation:
+  protocol: evaluate_v2 markers_dominant (seed-ignore, paper Sec. III-C), primary
+  secondary: no_markers_fraction050
+  iou:
+  - 0.25
+  - 0.5
+  - 0.75
+  gt_valid: '>= 1000 voxels, not touching a crop face'
+  size_filter:
+  - none (primary)
+  - '500'
+  - own (500 s^3)
+  routes:
+  - BA-TOS_ToS
+  - BA-TOS_sel
+design_data:
+  dev: 12 SIBGRAPI EFR crops (data/metadata/crops_sibgrapi.json)
+  synthetic: 36 rescaled dev crops f 0.7/1.4/2.0 (data/metadata/crops_synth_scale.json)
+  evidence: results/v3_scale_test/REPORT.md
+  test_untouched_until_freeze: true
+drivers:
+  test: python -I scripts/run_test_v3.py
+  aggregate: python -I scripts/aggregate_test_v3.py
+  single_crop: python -I -m batos_v3.pipeline --preset v3 --crop-id <id> --gray <tif> --out <dir>
+constants_at_s1:
+  flatten:
+  - --lambda-xy
+  - '1.0'
+  - --variant
+  - A
+  tos_seed:
+  - --height-factor
+  - '0.012'
+  - --area-factor
+  - '22'
+  - --area-min
+  - '2'
+  - --area-max
+  - '2200'
+  - --delta-parent-min
+  - '0'
+  - --dark-percentile-max
+  - '78'
+  - --min-score
+  - '0.35'
+  - --max-selected-nodes
+  - '900'
+  - --support-area-min
+  - '20'
+  - --support-area-max
+  - '45000'
+  - --support-max-steps
+  - '16'
+  - --component-min
+  - '2'
+  - --component-max
+  - '1500'
+  background:
+  - --dark-connectivity
+  - '1'
+  - --seed-area-min
+  - '1'
+  - --seed-area-max
+  - '3000'
+  - --max-external-overlap
+  - '0.1'
+  - --min-internal-overlap
+  - '0.0'
+  - --internal-search-radius
+  - '6'
+  - --center-radius
+  - '2'
+  - --ring-inner
+  - '4'
+  - --ring-outer
+  - '10'
+  - --center-dark-max
+  - '255.0'
+  - --min-ring-contrast
+  - '-255.0'
+  - --max-ring-external-coverage
+  - '0.7'
+  - --nms-min-dist
+  - '5.0'
+  markers_legacy:
+  - --connectivity
+  - '1'
+  - --area-min
+  - '3'
+  - --area-max
+  - '900'
+  - --max-dim
+  - '30'
+  - --max-elongation
+  - '8.0'
+  - --min-fill
+  - '0.005'
+  - --center-radius
+  - '2'
+  - --ring-inner
+  - '4'
+  - --ring-outer
+  - '10'
+  - --center-dark-max
+  - '255.0'
+  - --min-ring-contrast
+  - '-2.0'
+  - --nms-min-dist
+  - '7.0'
+  - --max-markers
+  - '420'
+  true_dual:
+  - --height-factor
+  - '0.012'
+  - --area-factor
+  - '22.0'
+  - --area-min
+  - '2'
+  - --area-max
+  - '2200'
+  - --delta-parent-min
+  - '0'
+  - --dark-percentile-max
+  - '78.0'
+  - --support-area-min
+  - '20'
+  - --support-area-max
+  - '45000'
+  - --support-max-steps
+  - '16'
+  - --support-area-ratio-preferred
+  - '18.0'
+  - --support-area-ratio-width
+  - '80.0'
+  - --support-contrast-norm
+  - '80.0'
+  - --delta-norm
+  - '20.0'
+  - --area-preferred-position
+  - '0.42'
+  - --area-preferred-width
+  - '0.55'
+  - --w-height
+  - '0.22'
+  - --w-delta
+  - '0.12'
+  - --w-area
+  - '0.18'
+  - --w-dark
+  - '0.18'
+  - --w-support
+  - '0.3'
+  - --min-score
+  - '0.35'
+  - --cleanup-open-radius
+  - '0'
+  - --cleanup-close-radius
+  - '0'
+  - --component-min
+  - '2'
+  - --component-max
+  - '1500'
+  - --max-selected-nodes
+  - '3600'
+  markers_tos:
+  - --polarity
+  - min
+  - --nms-radius
+  - '6.0'
+  - --edt-priority-weight
+  - '0.2'
+  - --min-priority-bonus
+  - '0.05'
+  edt_otsu:
+  - --mode
+  - otsu_edt
+  - --nms-radius
+  - '6.0'
+  - --v3-min-component
+  - '500'
+  - --v3-closing-iterations
+  - '1'
+  ws_tos:
+  - --outside-policy
+  - drop
+  - --v3-min-component
+  - '500'
+  - --v3-closing-iterations
+  - '1'
+  ws_sel:
+  - --outside-policy
+  - drop
+  - --v3-min-component
+  - '500'
+  - --v3-closing-iterations
+  - '1'
+  route:
+  - --v3-median-limit
+  - '3.0'
+  - --v3-q75-limit
+  - '4.0'
+code_sha256_at_freeze:
+  src/batos_v3/__init__.py: a449dc937edaa3d57e2f297b01ff613c7649746126b15e566b489ebfc9fef92c
+  src/batos_v3/constants.py: d6a1e16a0806799ab450f2ada92c3b21897ee65fd0e70114c929163d4f9a83a5
+  src/batos_v3/scale.py: 09d7e19d496d72564ed6935f9cf0b5f5fee10dd5a849ec3f5b82fba01188366a
+  src/batos_v3/pipeline.py: c2df96b88227da085a544fefd4afe02a0a40c467b38e297b2c7d55464ff13d48
+  src/batos_v3/make_patched.py: fcdb4b2a5c57396d9b88b9f249b811f6224963e0e54cd68b1a772f98acbabdaf
+  src/batos_v3/patched/e11_build_control_markers_v3.py: c662e83beb7af64953f8bf162b15d2c8e3ac2378fc6d5bd649adc2cc944dba47
+  src/batos_v3/patched/e11_run_fixed_mask_watershed_v3.py: 8e10d4ca77e02ed4ef4d361764441d267f09fb7663fb01d29fd1c78b1f53a5f9
+  src/batos_v3/patched/e23c_build_selective_marker_route_v3.py: b8ed80023c51a599ee28fd3f1faffa630535ed354aa44090b023341bfb1f03c2
+  src/batos_v3/patched/patched_manifest.json: a0ddf178c2a27374169c5fa0469d26dc696b6d85801d21bb958821c44d361069
+  src/batos_v2/flatten_fixed.py: f62e0750388587c65d06373471126bb01721067f47bbf8467b80964eaefdbead
+  src/batos_v2/openrec_lowmem.py: 35df8b810c040de1c5f612d6728892a404710c6c54f212d72d618bb947acfffc
+  src/batos_v2/extinction_run.py: 91621812eb1e3f58264d07899692bdf213a2f2df0ab87c4205681fafb7c5146f
+  src/batos_v2/frozen.py: 742785f85e112cbb982e7c3ef38d0a5fea189cd3b3e37b772da3cd31397b6901
+  src/batos_v2/sensitivity.py: 5a88c16ec5766687cd1d41bb119c952a1aa1c7406c17f6384e83d98c87b899ea
+  src/batos_v2/run_crop.py: ff0431c37ccc3ed4b4ece134dc054321aa40936df7df9315cd6644e1728f4153
+  src/batos_v2/evaluate_v2.py: 52ffc4f87e51d26a9b09baf95a782556daf3d0263e9a3a2161ad046fce66b728
+  scripts/run_test_v3.py: 05cb8dbfcb6dbdbcba936615b285c4e7792e14a73fae77e584d777dee09bd4eb
+  scripts/aggregate_test_v3.py: 1b46357c4cabaa4dabde431e4fa3c75756be4cd2762ee03e32330f905eac1cea
+recovered_scripts_sha256:
+  openrec_v2:
+    path: C:\BA_TOS_DATA\linux_import\zsh_recovered\code__segmentation__batos__batos_preprocess_opening_reconstruction_v2.py
+    sha256: 4c75c334fb472a78f93d81d0df3bd39c879b06967fd2726aa009ac594b7db154
+  batos_tos_seed:
+    path: C:\BA_TOS_DATA\frozen_code\pilot_branch_413920f\batos_tos_seed.py
+    sha256: cc0006c4d9eee2335c223dfea43f561cc5a23fa5b35e7621b1cc64f17b08ef2d
+  batos_background:
+    path: C:\Users\USER\batos-3d-grain-segmentation\src\batos\batos_background.py
+    sha256: 593fcbae8389e3015ace2b9e8c54f991ba7744e65c3383049296f060af44808b
+  batos_markers:
+    path: C:\Users\USER\batos-3d-grain-segmentation\src\batos\batos_markers.py
+    sha256: 12df7ed3ef7ab132c457aada5b4fc80b2bb94293cbe21bc5b11cbcaf71d54ee3
+  true_dual:
+    path: C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\batos_tos_seed_true_dual.py
+    sha256: 2acd06bda50951a496efe8d3754f8eb12caf9d5f34631afee50857ca52caa5ed
+  spatialize:
+    path: C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e10_spatialize_candidates_no_gt.py
+    sha256: abe2fc66f5d72b6b2ad140a64fa87912713d5fb7960ab3e15b9479e83c6b174f
+  e11_markers:
+    path: C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e11_build_markers_ablation.py
+    sha256: f481dc4c53cebed57ee2d9f774b6ebe41f5666985910b601f5217c63e8f8d502
