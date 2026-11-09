@@ -1,0 +1,54 @@
+% Held-out test set 1 (52 crops, 6 specimens): batos-paper-v2-frozen / batos-paper-v2-fixflat / batos-paper-v3-scalefree.
+% Source: results/test_v3/ (crop_macro.csv, pooled.csv; route BA-TOS_sel, mode markers_dominant, size filter none).
+% Requires \usepackage{booktabs}.
+
+% Table A — crop-macro
+\begin{table}[t]
+\centering
+\caption{Held-out test set (52 crops of $200^3$, 6 specimens): crop-macro F1@0.50 (mean $\pm$ SD over crops),
+seed-ignore evaluation, no size filter. $\hat r$: GT-free grain-scale estimate of v3;
+$r_\mathrm{in}$: median GT inscribed radius (diagnostic only).}
+\label{tab:test_cropmacro}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrcccc}
+\toprule
+Specimen & $n$ & $\hat r$ / $r_\mathrm{in}$ & BA-TOS (frozen) & + fixed flattening & BA-TOS v3 \
+\midrule
+EFR & 12 & 10 / 10.6 & $0.879 \pm 0.223$ & $0.956 \pm 0.048$ & $\mathbf{0.985 \pm 0.011}$ \
+EFS &  8 & 10 / 10.6 & $0.882 \pm 0.155$ & $0.968 \pm 0.043$ & $\mathbf{0.974 \pm 0.044}$ \
+EMR &  8 & 14 / 14.5 & $0.303 \pm 0.439$ & $0.250 \pm 0.416$ & $\mathbf{0.980 \pm 0.027}$ \
+EMS &  8 & 14 / 14.7 & $0.432 \pm 0.465$ & $0.479 \pm 0.474$ & $\mathbf{0.986 \pm 0.020}$ \
+EOR &  8 & 15 / 15.3 & $0.293 \pm 0.362$ & $0.238 \pm 0.434$ & $\mathbf{0.754 \pm 0.240}$ \
+EOS &  8 & 15 / 15.3 & $0.265 \pm 0.429$ & $0.365 \pm 0.499$ & $\mathbf{0.754 \pm 0.214}$ \
+\midrule
+External (5 spec.) & 40 & -- & $0.435 \pm 0.435$ & $0.460 \pm 0.473$ & $\mathbf{0.890 \pm 0.178}$ \
+All                & 52 & -- & $0.538 \pm 0.437$ & $0.575 \pm 0.465$ & $\mathbf{0.912 \pm 0.161}$ \
+\midrule
+\multicolumn{3}{l}{Crops with F1 $< 0.90$} & 33 & 25 & \textbf{10} \
+\multicolumn{3}{l}{Pipeline failures (empty output)} & 1 & 5 & \textbf{0} \
+\multicolumn{3}{l}{Support-collapse gate fires} & 30 & 13 & \textbf{0} \
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Table B — pooled objects
+\begin{table}[t]
+\centering
+\caption{Held-out test set: pooled-object F1@0.50 over all valid GT grains (seed-ignore, no size filter).}
+\label{tab:test_pooled}
+\begin{tabular}{lrccc}
+\toprule
+Specimen & GT grains & BA-TOS (frozen) & + fixed flattening & BA-TOS v3 \
+\midrule
+EFR & 2476 & 0.929 & 0.967 & \textbf{0.985} \
+EFS & 1793 & 0.881 & 0.965 & \textbf{0.970} \
+EMR & 1039 & 0.393 & 0.371 & \textbf{0.973} \
+EMS & 1070 & 0.495 & 0.546 & \textbf{0.983} \
+EOR & 1120 & 0.350 & 0.324 & \textbf{0.733} \
+EOS & 1116 & 0.311 & 0.455 & \textbf{0.735} \
+\midrule
+External & 6138 & 0.585 & 0.635 & \textbf{0.893} \
+All      & 8614 & 0.700 & 0.752 & \textbf{0.921} \
+\bottomrule
+\end{tabular}
+\end{table}
