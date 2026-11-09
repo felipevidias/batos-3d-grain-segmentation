@@ -708,3 +708,25 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
 - v3 below 0.90 (no filter): both crop05 at f 2.0 (0.667, 0.621; 9 valid GT, 9 and 11 sub-filter fragments; with the
   500 s³ filter 1.000). v3 is behind fixflat at f 0.7 without the filter (351 small FP fragments vs 13; filtered 0.995 vs 1.000).
   Reported, not tuned. Step-3 criterion met; no design iteration. Report `results/v3_scale_test/REPORT.md`.
+
+## 2026-11-08 — Phase 5e step 4: frozen v3 on the 52 held-out test crops (COMPLETE)
+
+- `python -I scripts/run_test_v3.py`; freeze hash check passed in every session (code commit a853e83, tag
+  batos-paper-v3-scalefree). Four sessions: machine shutdown after 10 crops (partial EFRGP01_01_test11 deleted);
+  stopped at 14:36 by Claude Code's low-memory stop after 27 (partial EMRGP01_01_test08); user-terminal session from 17:19, stopped after 29
+  (partial EMSGP01_00_test02); final session 20:43 → END 23:14. Partials rerun from scratch, completed crops never re-run.
+  `test_v3.log` mixes UTF-8/UTF-16 lines (PowerShell redirection in session 3).
+- 52/52 DONE, 0 crashes, 0 empty, gate never fires (frozen 30, fixflat 13). Aggregated with the frozen
+  `scripts/aggregate_test_v3.py`, unmodified; 624 rows `test_v3_v3/<crop>` in `results/all_runs.csv`.
+- Crop-macro F1@0.50 sel (seed-ignore, no filter) frozen / fixflat / v3: all 0.538 / 0.575 / **0.912**; EFR_internal
+  0.879 / 0.956 / 0.985; external 0.435 / 0.460 / 0.890; EMR 0.980, EMS 0.986, EFS 0.974, EOR 0.754, EOS 0.754 (v3).
+  Pooled F1@0.50: 0.700 / 0.752 / **0.921** (filter 500: 0.722 / 0.760 / 0.922).
+- r_granulo / GT r_in 0.94–0.98 on all six specimens (Pearson 0.998, n = 52, three size clusters); e13 0.46–0.95 (r −0.81).
+- v3 runtime median 397 s/crop (frozen 271), 6.0 h total, peak 3.65 GB; openrec_lowmem on all 32 EM/EO crops. Not contention-controlled.
+- 10 flags < 0.90: 8 EO interior + EOSGP01_01_test08 (boundary; only v3 < fixflat case, 0.776 vs 0.982) + EFSGP01_01_test05
+  (0.876, identical for all three methods, crop-intrinsic). The frozen first-stage rule says "watershed" for all. Supplementary
+  `scripts/forensics_test_v3_seed_density.py` (diagnosis only) puts the first anomaly at **candidate capacity**: MIN
+  candidates are at the 1800/s³ cap on all 52 crops; EO interior has 1.19 candidates / 0.35 markers per grain (valid +
+  excluded GT) vs 2.7 / 0.60 on EFR. Grain counts per crop fall as ~0.70 (not s⁻³ = 0.30) because face-touching grains
+  (~60 %) scale as a surface. Not acted on: a K-scaling change is a method change → dev design, re-freeze, new held-out set.
+- Report `results/test_v3/REPORT.md`. `results/sensitivity/global_sensitivity.csv` still left uncommitted (user sweep).
