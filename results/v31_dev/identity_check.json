@@ -1,0 +1,12 @@
+{
+ "e11/watershed/segmentations/tos_e11_min_distance_c1.tif": {
+  "v3": "9dd4c25ea787c822a7393ca753658f605056eaa559eb55d8361048f13d63f20d",
+  "v3.1": "9dd4c25ea787c822a7393ca753658f605056eaa559eb55d8361048f13d63f20d",
+  "identical": true
+ },
+ "e23c/watershed/segmentations/batos_selective_distance_c1.tif": {
+  "v3": "9dd4c25ea787c822a7393ca753658f605056eaa559eb55d8361048f13d63f20d",
+  "v3.1": "9dd4c25ea787c822a7393ca753658f605056eaa559eb55d8361048f13d63f20d",
+  "identical": true
+ }
+}
