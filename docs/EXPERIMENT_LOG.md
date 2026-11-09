@@ -730,3 +730,17 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   excluded GT) vs 2.7 / 0.60 on EFR. Grain counts per crop fall as ~0.70 (not s⁻³ = 0.30) because face-touching grains
   (~60 %) scale as a surface. Not acted on: a K-scaling change is a method change → dev design, re-freeze, new held-out set.
 - Report `results/test_v3/REPORT.md`. `results/sensitivity/global_sensitivity.csv` still left uncommitted (user sweep).
+
+## 2026-11-09 — Phase 5f steps 1–2: v3.1 (count constants floored at v2) — validation FAILED, stopped before freeze
+
+- Step 1: `src/batos_v31` changes only kind N in v3: v2 · max(1, s⁻³). This is the user's choice over c · N̂, which
+  scales as s⁻³ like v3. N constants: tos_seed max-selected-nodes 900, markers_legacy max-markers 420, true_dual
+  max-selected-nodes 3600 (K = 1800 MIN + 1800 MAX). Implemented by rebinding `batos_v3.pipeline.constants`. No
+  frozen file was edited.
+- Step 2 (`scripts/run_v31_dev.py`, `scripts/aggregate_v31_dev.py`, results/v31_dev/):
+  - Flags are identical to v3 for all 24 crops with s ≤ 1, and crop04 re-ran bit-identical. f = 1.0 stays 0.989 (pass).
+  - Crop-macro sel F1@0.50 (no filter): f = 1.4 0.995 → 0.941; f = 2.0 0.938 → 0.326 (12/12 crops < 0.90).
+  - crop05 at f = 2.0: 0.667 / 0.621 → 0.247 / 0.290. **Fail.**
+  - Cause: markers per grain 0.42 → 2.62 at f = 2.0, giving over-segmentation into sub-filter fragments. FN = 0
+    everywhere, and with the own filter F1 is 0.996.
+- Steps 3–4 not run: no freeze, no tag, test set 2 not defined or cut (still unseen). Decision needed from the user.
