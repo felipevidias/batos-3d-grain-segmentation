@@ -856,3 +856,13 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - The histogram shows that BA-TOS-SF has a heavy over-volume tail: >+20 % on 46/259 grains (crop04) and 28/69 (EOR
     test01), max +79 % / +91 %.
   - Cellpose-SAM stays in +6 to +14 % on every grain.
+
+## 2026-11-10 — Phase 5i: v3c canonical-scale normalization (worktree `..\batos-v32`)
+- Design record and acceptance criteria written before any run: `docs/V3C_CANONICAL.md`.
+  - r_granulo (v3 estimator) → cubic resample by f = 10 / r_granulo → frozen v2-fixflat (openrec 15 = the frozen
+    rule at r = 10, every other constant frozen) → size filter 500 at canonical scale → nearest map back.
+  - Pass: f = 1.0 ≥ 0.976 (fixflat dev). "≈ flat" made concrete: f = 0.7 / 1.4 / 2.0 each ≥ 0.966.
+- Code: `src/batos_v3c/canonical.py`, `scripts/run_v3c_dev.py`. Helper toy tests passed (volume ∝ 1/f³, centroid and
+  marker positions preserved).
+- Known risk, stated in advance: synthetic crops are 200³, so the canonical crop is ~95–100³ at f = 2.0, below the
+  128³ where the frozen method already degrades (SIBGRAPI Table V: 0.851). Test EO crops (r 15) become 133³.
