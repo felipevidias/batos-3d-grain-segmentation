@@ -783,3 +783,11 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - Cause: the EDT-Otsu basins (seeds NMS 6 s = 0.6 r_granulo) put 2–3 basins in one large grain, so a grain keeps
     one marker per basin. Reported, not tuned (pre-registered order: next is H2).
   - H1 continues at f = 1.4 / 0.7 for the full report; those prefixes are shared with H2/H3.
+- H1, f = 1.4 complete (12/12): crop-macro F1@0.50 **0.985** ± 0.027 (min 0.901, 00_crop05). v3 0.995, v3.1 0.941.
+  Threshold 0.990 → criterion 2 also fails at f = 1.4.
+  - Pooled: TP 877, FP 21, FN 0 (v3 877/9/0; v3.1 877/90/0). Split valid grains 6 (v3 3, v3.1 60).
+  - 16 markers in background (v3 7). With the own filter: 1.000 (all FP are sub-filter fragments).
+- H1, f = 0.7 complete (12/12; supplementary): crop-macro F1@0.50 0.977 (v3 0.975; threshold 0.970) → passes.
+  F1@0.75 0.977 (v3 0.974). Split median 0.5 % → 0.2 %.
+- **H1 verdict: does not hold** (passes f = 0.7 and 1.0; fails f = 1.4 and 2.0). Tables: `results/v32_dev/tables.md`.
+  Next per pre-registered order: H2 (NMS 0.8 r_granulo on the final marker list), reusing the same prefixes.
