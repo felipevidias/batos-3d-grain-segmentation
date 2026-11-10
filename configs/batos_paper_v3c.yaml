@@ -1,0 +1,118 @@
+# batos-paper-v3c — FROZEN method under test (Phase 5i).
+# Designed on the 12 EFR dev crops + canonical-FOV synthetic scale set only. Test set 2 is defined after
+# this freeze. scripts/run_test2_v3c.py checks every hash below (LF-normalised) before running.
+preset: batos-paper-v3c
+git_tag: batos-paper-v3c
+git_commit_code: f51d8adf6ea482e20ccc27b01d8394633c8717d7
+frozen_on: '2026-11-10'
+status: frozen_for_test
+method:
+  idea: canonical-scale normalisation around the frozen batos-paper-v2-fixflat pipeline (docs/V3C_CANONICAL.md)
+  scale: r_granulo = batos_v3.scale.estimate on the 200^3 probe (only scale input); f = 10 / r_granulo
+  window: native side round(200 r_granulo / 10) at the probe centre (canonical field of view 200^3)
+  resample_in: scipy.ndimage.zoom order 3, grid_mode, grid-mirror; clipped, rounded, input dtype; none at f = 1
+  canonical_run: batos_v3.pipeline.run_crop preset fixflat, e13 replaced by r = 10, openrec 15; all v2 constants
+  size_filter_own: 500 canonical voxels
+  map_back: labels nearest neighbour; markers by voxel-centre coordinate map
+  identity: f = 1 reproduces batos-paper-v2-fixflat bit-for-bit (EFRGP01_00_crop04, both routes)
+evaluation:
+  evaluator: batos_v3c.eval_lean (exactly equal to batos_v2.evaluate_v2; scripts/check_eval_lean.py)
+  protocol: markers_dominant (seed-ignore) primary; no_markers_fraction050 secondary; IoU .25/.50/.75
+  gt_valid: '>= round(1000 (r_granulo/10)^3) native voxels (1000 canonical), not touching a face'
+acceptance_dev:
+- factor: 0.7
+  n_crops: 12
+  f1_050: 0.9879218903426672
+  threshold: 0.966
+  pass: true
+- factor: 1.0
+  n_crops: 12
+  f1_050: 0.9859315558777264
+  threshold: 0.976
+  pass: true
+- factor: 1.4
+  n_crops: 12
+  f1_050: 0.9825357655135224
+  threshold: 0.966
+  pass: true
+- factor: 2.0
+  n_crops: 12
+  f1_050: 0.9845662570722812
+  threshold: 0.966
+  pass: true
+design_data:
+  dev: 12 SIBGRAPI EFR crops
+  synthetic: 36 canonical-FOV windows f 0.7/1.4/2.0 (data/metadata/crops_synth_canon.json)
+  evidence: results/v3c_dev/tables.md
+  test_set_1_used_for: nothing in the v3c design
+  test_set_2_defined_after_freeze: true
+test_set_2:
+  definition: python -I scripts/define_test_crops2.py (seed 20261109)
+  cut: python -I scripts/cut_test2_v3c.py
+  run: python -I scripts/run_test2_v3c.py
+  aggregate: python -I scripts/aggregate_test2_v3c.py
+  methods:
+  - v3
+  - v3c
+hash_convention: sha256 of LF-normalised bytes
+code_sha256_at_freeze:
+  src/batos_v3/__init__.py: a449dc937edaa3d57e2f297b01ff613c7649746126b15e566b489ebfc9fef92c
+  src/batos_v3/constants.py: 324af781d42c421a7318482b97758dbab79e9d45fddc9cc801a05d71d93465e4
+  src/batos_v3/scale.py: ed0bb5d1ed2dbb36220b589f8ea5472619e03c8261e5629ffefb8dc1e5a73c2f
+  src/batos_v3/pipeline.py: c2df96b88227da085a544fefd4afe02a0a40c467b38e297b2c7d55464ff13d48
+  src/batos_v3/make_patched.py: fcdb4b2a5c57396d9b88b9f249b811f6224963e0e54cd68b1a772f98acbabdaf
+  src/batos_v3/patched/e11_build_control_markers_v3.py: 02b13fa2a54c1b531bdd82fb287e34859ffc2a21281e1e700fbc03dfba3b362f
+  src/batos_v3/patched/e11_run_fixed_mask_watershed_v3.py: 3e19c67afae2b7bd6bea3759425bfc739dc0d7e745f6e896a3fd4b00bb733405
+  src/batos_v3/patched/e23c_build_selective_marker_route_v3.py: d4db139e1fbbf65075794f77dc8ca52bb1ca8f6bc226e76a0c492c0f3d2a6c27
+  src/batos_v3/patched/patched_manifest.json: fc7a416c2a3ebb39a86ab475f07b30139601ea4b9e2f09fade5791d18e167785
+  src/batos_v2/flatten_fixed.py: f62e0750388587c65d06373471126bb01721067f47bbf8467b80964eaefdbead
+  src/batos_v2/openrec_lowmem.py: 35df8b810c040de1c5f612d6728892a404710c6c54f212d72d618bb947acfffc
+  src/batos_v2/extinction_run.py: ae471d502ff4635149589edfe9c52f3ba39704c355a36f1583e2fc8a1043451b
+  src/batos_v2/frozen.py: 536e507d5b74cac1d13f39070a0daa56e2d13d5f4ba57485307dc226945998de
+  src/batos_v2/sensitivity.py: 1a12ced507af2a3fd5e70ca8d6ef373d25097de02b9e505b7a9583c6529f7940
+  src/batos_v2/run_crop.py: e43ba9c874513f16df3213895fe73ef141c2977971f1b436c9a85893c4e966d2
+  src/batos_v2/evaluate_v2.py: b801b9325e8d8d18b5ec95bdd7aee9e6d2ec584d57c2e53ad95c83f8f7a0385e
+  scripts/run_test_v3.py: 05cb8dbfcb6dbdbcba936615b285c4e7792e14a73fae77e584d777dee09bd4eb
+  scripts/aggregate_test_v3.py: 1b46357c4cabaa4dabde431e4fa3c75756be4cd2762ee03e32330f905eac1cea
+  src/batos_v3c/__init__.py: 804a52c0e945f5ce5f5eec4af17161d41116acb08b73101c1ff146fed722a68b
+  src/batos_v3c/canonical.py: 434200f909e1958836ce946827b504fe1d5e00002afb006d6e1b125c671bbc60
+  src/batos_v3c/eval_lean.py: 91a17ae4d77974835b07a1705992073ae88140067af96a9f288dd394082ac822
+  scripts/run_v3c_dev.py: ff81f0c5d433558729c289993ad89d6077bb2c04a2cbe1642bbe20e2865c7b93
+  scripts/check_eval_lean.py: 14c59067ba491e4e19d7a7a1207f6d966b453ba17baedc39cb83cef8e954af65
+  scripts/aggregate_v3c_dev.py: 01f37f673ddc58fc8f1eeb33db0a53c3057f9cbbe5530bf3eef7a5a07e3438a0
+  scripts/make_synthetic_canon.py: 7fb2e6ceeb5a2f86e878cfda3a7cb7e3f1d55e5efd322f53acf740b1c86368e5
+  scripts/define_test_crops.py: c90a6a8ee5bc4deb2d51163018826e293a0f95957a28bc5edb740769a283678e
+  scripts/define_test_crops2.py: 0e99e72ed6696c2178e04d7a5e6eb7b128a40e5854bda881512f6d74515988e4
+  scripts/extract_and_cut.py: 84a3f12c35524a2c5d7f924b67a86b287e59fed306bb029ad0b0091a6a81106e
+  scripts/make_crops.py: c3b18b0d93220d3e60ce6ef4c8a37ec1a776e0d6c291e82f96ed361ffe70a595
+  scripts/cut_test2.py: f88afc2f0b37666b3158c7f3fb103657a489ec36e1e4aba52cd17f711e571db5
+  scripts/cut_test2_v3c.py: 007a4a97b6a92b57c7ee9fd9cfd82f5008e53042437db35b8790ce5e75e32291
+  scripts/run_test2_v3c.py: 5680aa0d66f35962a8027f9db42596eb08ecd880ea0ea06282bf7f72497f7955
+  scripts/aggregate_test2_v3c.py: 1fa3ce6662c312a8a9a376949718aa486569d7dc007a038ba92f16b4fdc396b0
+  configs/batos_paper_v3_scalefree.yaml: c63c3bb9a688a608dcf824bb466eadca0efdf7a431f57b375a3bf2bbe096cae0
+  docs/V3C_CANONICAL.md: 39c63b7af9d53fadd5c4777530cd23b5a498e3ec8722738615440a9d4099afd5
+recovered_scripts_sha256:
+  openrec_v2:
+    path: C:\BA_TOS_DATA\linux_import\zsh_recovered\code__segmentation__batos__batos_preprocess_opening_reconstruction_v2.py
+    sha256: 4c75c334fb472a78f93d81d0df3bd39c879b06967fd2726aa009ac594b7db154
+  batos_tos_seed:
+    path: C:\BA_TOS_DATA\frozen_code\pilot_branch_413920f\batos_tos_seed.py
+    sha256: cc0006c4d9eee2335c223dfea43f561cc5a23fa5b35e7621b1cc64f17b08ef2d
+  batos_background:
+    path: C:\Users\USER\batos-v32\src\batos\batos_background.py
+    sha256: 3bf7bb6dc653e8089b0175cba21c839d87fe74777150431c369c1fa69fcfe39e
+  batos_markers:
+    path: C:\Users\USER\batos-v32\src\batos\batos_markers.py
+    sha256: 9ef44805109f3e52680ef3e093dd3256b8a3dac271b17a80211ea5db65fb870d
+  true_dual:
+    path: C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\batos_tos_seed_true_dual.py
+    sha256: 2acd06bda50951a496efe8d3754f8eb12caf9d5f34631afee50857ca52caa5ed
+  spatialize:
+    path: C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e10_spatialize_candidates_no_gt.py
+    sha256: abe2fc66f5d72b6b2ad140a64fa87912713d5fb7960ab3e15b9479e83c6b174f
+  e11_markers:
+    path: C:\BA_TOS_DATA\linux_import\chat_recovered\e13_crop05_metadata_full_20260725_182408\audit\e11_build_markers_ablation.py
+    sha256: f481dc4c53cebed57ee2d9f774b6ebe41f5666985910b601f5217c63e8f8d502
+  openrec_lowmem:
+    path: C:\Users\USER\batos-v32\src\batos_v2\openrec_lowmem.py
+    sha256: 35df8b810c040de1c5f612d6728892a404710c6c54f212d72d618bb947acfffc
