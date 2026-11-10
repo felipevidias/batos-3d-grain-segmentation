@@ -95,3 +95,24 @@ def test_stitch_matched_keep_larger(tmp_path):
     assert len(inst) == 1 and inst.gid.iloc[0] == 2 and inst.matched_replaced.iloc[0] == 1
     assert drop.reason.tolist() == ["matched_larger_new"]
     assert not (L == 1).any() and (L == 2).sum() == 164
+
+
+def test_stitch_orphan_rescue(tmp_path):
+    """Same ownership disagreement as test_stitch: with orphan_rescue, grain A is recovered exactly once."""
+    shape, core, halo = (20, 10, 10), 10, 4
+    t0, t1 = make_grid(shape, core, halo)
+    s0 = np.zeros((14, 10, 10), np.uint32)
+    s0[7:14, 2:6, 2:6] = 5          # A seen by tile 0 (centroid 10 -> tile 1 core): not owned
+    s0[1:4, 1:4, 1:4] = 6
+    s1 = np.zeros((14, 10, 10), np.uint32)
+    s1[1:7, 2:6, 2:6] = 3           # A seen by tile 1 (centroid 9.5 -> tile 0 core): not owned
+    s1[9:13, 6:9, 6:9] = 4
+    _write_tile(tmp_path / "tiles", t0, s0)
+    _write_tile(tmp_path / "tiles", t1, s1)
+    meta = stitch([t0, t1], tmp_path / "tiles", tmp_path / "st", orphan_rescue=True)
+    L = np.load(tmp_path / "st" / "labels.npy")
+    inst = pd.read_csv(tmp_path / "st" / "instances.csv")
+    assert meta["n_instances"] == 3 and meta["n_rescued"] == 1 and meta["n_rescued_seed_proxy"] == 1
+    r = inst[inst.rescued == 1].iloc[0]
+    assert r.tile_id == "t0_0_0" and (L == r.gid).sum() == 7 * 16  # tile 0's copy (first in order), all free
+    assert set(np.unique(np.load(tmp_path / "st" / "seeds.npz")["gid"])) == {1, 2, 3}

@@ -757,3 +757,21 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   (e11 empty markers). `ws_mask_closing_iterations` 0 failed on all 12 crops. This is a sweep artifact: scipy
   `iterations=0` means "until convergence" and empties the mask. The point is invalid and was not re-run.
 - Next: Phase 2 (Cellpose baselines).
+
+## 2026-11-10 — Phase 5g steps 1–4: tiled full-volume v3, smoke test `smoke_center3` (worktree `journal-extension-fullvolume`)
+
+- Code: `scripts/run_fullvolume.py` (scale | run | stitch | evaluate), `src/batos_fullvolume/{tiling,stitch,stream_eval}.py`,
+  `scripts/report_fullvolume.py`, `configs/fullvolume_v3.yaml`. Method frozen v3 (hash-checked); cores 200³; halo
+  2·r_granulo = 20 (r = 10, GT-free, central 200³). Memmapped uint32 `labels.npy`; at most 3 workers with a stage-level RAM gate.
+- Smoke (27 central tiles, z,y,x 400–1000): all DONE. Wall time 13,996 s under contention from 2 other sessions;
+  per-tile peak 5.47 GB; process-tree peak 8.9 GB. Gate fired 0/27. Valid GT 6,005 (ROI ∩ ≥ 1000 vox ∩ core box;
+  the full-volume ROI has 9,278 labels, not 29k).
+- Spec stitch: pooled F1@.25/.50/.75 0.900/0.827/0.800, P 0.913, R 0.756; seam F1 0.727 vs interior 0.868.
+- Finding 1: grains straddling a plane are owned by no tile, because each tile's centroid is biased toward its
+  halo. Added optional GT-free orphan rescue (`stitch --orphan-rescue`, 719 rescued; seed = 1-voxel proxy).
+  Result: F1@.50 0.865, R 0.820; seam 0.858 ≈ interior 0.869. Tiles now also save `seeds_all_<route>.npz`.
+- Finding 2: the interior is still far below the crops. crop04/crop07 boxes inside the stitched volume reach
+  R 0.72/0.75, vs v3-on-crop F1 0.985/0.987. Cause: the K = 3600 candidate pool saturates on both 200³ and 240³,
+  so 240³ tiles get 0.58× the frozen candidate density (GT in merges 16 %; matches the dev K = 1800 result of 0.833).
+  Not acted on. Option: padded tiles of 200³ (core 160 + halo 20), i.e. the frozen regime without a method change.
+- Full run NOT launched (waiting for the user). Report: `results/fullvolume/SMOKE_REPORT.md`.

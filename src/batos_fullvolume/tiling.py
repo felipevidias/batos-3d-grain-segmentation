@@ -181,6 +181,10 @@ def process_tile(tile: Tile, gray_path: Path, out_root: Path, halo: int, routes=
         np.savez_compressed(out / f"seeds_{route}.npz",
                             zyx=(mz + np.array([a for a, _ in tile.pad])).astype(np.int32),
                             label=kept[tuple(mz.T)].astype(np.uint32))
+        ma = np.argwhere((mk > 0) & (seg > 0))  # markers of every instance (orphan rescue needs non-owned)
+        np.savez_compressed(out / f"seeds_all_{route}.npz",
+                            zyx=(ma + np.array([a for a, _ in tile.pad])).astype(np.int32),
+                            label=seg[tuple(ma.T)].astype(np.uint32))
         tab.to_csv(out / f"instances_{route}.csv", index=False)
         rec[f"{route}_instances"] = int(len(tab))
         rec[f"{route}_owned"] = int(len(owned))

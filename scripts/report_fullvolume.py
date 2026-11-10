@@ -83,9 +83,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--name", required=True)
     ap.add_argument("--route", default="BA-TOS_sel")
+    ap.add_argument("--variant", default="", help="stitch/eval dir suffix, e.g. _rescue")
     a = ap.parse_args(argv)
-    edir = ROOT / a.name / f"eval_{a.route}"
-    res = REPO / "results" / "fullvolume" / a.name
+    edir = ROOT / a.name / f"eval_{a.route}{a.variant}"
+    res = REPO / "results" / "fullvolume" / f"{a.name}{a.variant}"
     res.mkdir(parents=True, exist_ok=True)
     for f in ("metrics.csv", "metrics.json", "per_tile.csv", "seam.json"):
         shutil.copy2(edir / f, res / f)
@@ -93,17 +94,18 @@ def main(argv=None) -> int:
     js = json.loads((edir / "metrics.json").read_text(encoding="utf-8"))
     pt = pd.read_csv(edir / "per_tile.csv")
     heatmap(pt, res / "per_tile_f1_heatmap.png",
-            f"{a.name}: BA-TOS v3 tiled ({a.route}, seed-ignore, no size filter) - per-tile F1@0.50")
+            f"{a.name}{a.variant}: BA-TOS v3 tiled ({a.route}, seed-ignore, no size filter) - per-tile F1@0.50")
     man = pd.read_csv(ROOT / a.name / "tiles_manifest.csv")
     r = js["resources"]
     rows = []
     for m in js["metrics"]:
-        rows.append({"experiment_id": f"fullvolume_{a.name}/EFRGP01_00", "method": a.route,
+        rows.append({"experiment_id": f"fullvolume_{a.name}{a.variant}/EFRGP01_00", "method": a.route,
                      "model": "batos-paper-v3-scalefree (tiled)", "volume": "EFRGP01_00",
                      "crop": f"{a.name} ({r['tiles']} tiles)", "device": "cpu (AMD Ryzen 7 5700X)",
                      "parameters": f"size_filter={m['size_filter']};eval=stream_eval:markers_dominant;"
                                    f"valid=roi_inside+ge1000+in_core_box;core=200;halo={r['halo']};"
-                                   f"match_iou={js['stitch']['match_iou']};contested=core_authority",
+                                   f"match_iou={js['stitch']['match_iou']};contested=core_authority;"
+                                   f"orphan_rescue={js['stitch'].get('orphan_rescue', False)}",
                      "runtime_seconds": r["tile_seconds_sum"], "peak_memory_mb": r["tree_rss_peak_mb"],
                      "tp": m["tp_iou050"], "fp": m["fp_iou050"], "fn": m["fn_iou050"],
                      "precision": m["precision_iou050"], "recall": m["recall_iou050"], "f1_025": m["f1_iou025"],

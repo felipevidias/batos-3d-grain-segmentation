@@ -12,6 +12,15 @@ materialised; one bbox-sized block per instance is in RAM at a time.
 Outputs (out_dir): labels.npy (+ labels_meta.json with the global offset), instances.csv (one row per global
 instance, provenance + reconciliation flags), dropped.csv, seeds.npz (global zyx + gid of every seed voxel of a
 surviving instance; at evaluation the support of p is the subset still labelled p).
+
+Optional orphan rescue (orphan_rescue=True; added 2026-11-11 after the smoke test showed seam grains owned by no
+tile: each tile's prediction of a plane-straddling grain is biased toward its own halo, so both centroids fall in
+the other tile's core). After the owned pass, every NON-owned tile instance (tile order, then local label) whose
+centroid lies in the core of a selected tile and whose voxels are still mostly unlabelled (free fraction >=
+rescue_min_free) is written into the FREE voxels only (never steals) with a new gid, flag rescued=1. The second
+tile's copy of the same grain then finds its voxels taken and is skipped. Seeds: marker voxels of the instance
+from seeds_all_<route>.npz when the tile has it; otherwise (tiles run before that file existed) the free instance
+voxel nearest the centroid is used as a single proxy seed (seed_proxy=1, an approximation for seed-ignore only).
 """
 
 from __future__ import annotations
@@ -33,7 +42,7 @@ def domain_box(tiles: list[Tile]) -> tuple:
 
 
 def stitch(tiles: list[Tile], tile_root: Path, out_dir: Path, route: str = "BA-TOS_sel",
-           match_iou: float = 0.5) -> dict:
+           match_iou: float = 0.5, orphan_rescue: bool = False, rescue_min_free: float = 0.5) -> dict:
     t_start = time.time()
     out_dir.mkdir(parents=True, exist_ok=True)
     box = domain_box(tiles)
@@ -90,7 +99,7 @@ def stitch(tiles: list[Tile], tile_root: Path, out_dir: Path, route: str = "BA-T
                    "crosses_core": bool(inst.at[a, "crosses_core"]), "s_owner": trec.get("s"),
                    "own_filter": trec.get("size_filter_own"),
                    "matched_replaced": 0, "matched_iou": np.nan, "contested_won": 0, "contested_lost": 0,
-                   "overlap_any": a in overlapped}
+                   "overlap_any": a in overlapped, "rescued": 0, "seed_proxy": 0}
             if a in match:
                 b, iou = match[a]
                 if na <= reg[b]["voxels"]:  # existing is at least as large -> keep it, drop A
@@ -133,6 +142,59 @@ def stitch(tiles: list[Tile], tile_root: Path, out_dir: Path, route: str = "BA-T
             seeds_zyx.append(sd["zyx"][s])
             seeds_gid.append(np.full(int(s.sum()), gid, np.uint32))
     L.flush()
+    n_rescue_cand = 0
+    if orphan_rescue:
+        sel_idx = {(t.iz, t.iy, t.ix) for t in tiles}
+        core = tiles[0].core[0][1] - tiles[0].core[0][0]
+        for tile in sorted(tiles, key=lambda t: (t.iz, t.iy, t.ix)):
+            d = tile_root / tile.tile_id
+            trec = json.loads((d / "tile.json").read_text(encoding="utf-8"))
+            if trec["status"] != "DONE":
+                continue
+            full = tifffile.imread(d / f"full_{route}.tif")
+            tab = pd.read_csv(d / f"instances_{route}.csv").set_index("label")
+            sda = np.load(d / f"seeds_all_{route}.npz") if (d / f"seeds_all_{route}.npz").exists() else None
+            pad0 = np.array([a for a, _ in tile.pad])
+            boxes = ndi.find_objects(full)
+            for a in tab.index[~tab.owned.to_numpy(bool)]:
+                c = tab.loc[a, ["cz", "cy", "cx"]].to_numpy(float)
+                if tuple(int(v) // core for v in np.floor(c)) not in sel_idx:
+                    continue  # centroid outside the selected cores: a grain of an unselected tile
+                sl_t = boxes[a - 1]
+                g0 = pad0 + [s_.start for s_ in sl_t] - off
+                g1 = pad0 + [s_.stop for s_ in sl_t] - off
+                if np.any(g0 < 0) or np.any(g1 > np.array(shape)):
+                    continue
+                n_rescue_cand += 1
+                sl_g = tuple(slice(int(x), int(y)) for x, y in zip(g0, g1))
+                mask = full[sl_t] == a
+                cur = np.asarray(L[sl_g])
+                free = mask & (cur == 0)
+                na, nf = int(mask.sum()), int(free.sum())
+                if nf < rescue_min_free * na:
+                    continue
+                gid = gid_next
+                gid_next += 1
+                cur[free] = gid
+                L[sl_g] = cur
+                reg[gid] = {"gid": gid, "tile_id": tile.tile_id, "local_label": int(a), "tile_voxels": na,
+                            "cz": float(c[0]), "cy": float(c[1]), "cx": float(c[2]),
+                            "crosses_core": bool(tab.loc[a, "crosses_core"]), "s_owner": trec.get("s"),
+                            "own_filter": trec.get("size_filter_own"), "matched_replaced": 0, "matched_iou": np.nan,
+                            "contested_won": 0, "contested_lost": 0, "overlap_any": nf < na, "rescued": 1,
+                            "seed_proxy": 0, "voxels": nf, "slices": sl_g}
+                z_ = np.zeros((0, 3), np.int32)
+                if sda is not None:
+                    z_ = sda["zyx"][sda["label"] == a]
+                    if len(z_):
+                        z_ = z_[np.asarray(L[tuple((z_ - off).T)]) == gid]
+                if len(z_) == 0:  # proxy seed: the free instance voxel nearest the centroid
+                    fz = np.argwhere(free) + g0 + off
+                    z_ = fz[[int(np.argmin(((fz - c) ** 2).sum(1)))]]
+                    reg[gid]["seed_proxy"] = 1
+                seeds_zyx.append(z_.astype(np.int32))
+                seeds_gid.append(np.full(len(z_), gid, np.uint32))
+        L.flush()
     # orphan diagnostic: every NON-owned tile instance vs the final labels (best IoU). An instance whose grain
     # no tile owns (each tile's centroid falls in the other's core) has best IoU ~0: a seam loss.
     orphans = []
@@ -173,6 +235,10 @@ def stitch(tiles: list[Tile], tile_root: Path, out_dir: Path, route: str = "BA-T
             "box": [list(b) for b in box], "offset": off.tolist(), "shape": list(shape), "dtype": "uint32",
             "labels": str(lab_path), "n_instances": int(len(inst_df)), "n_dropped": len(dropped),
             "max_gid": gid_next - 1,
+            "orphan_rescue": orphan_rescue, "rescue_min_free": rescue_min_free if orphan_rescue else None,
+            "rescue_candidates": n_rescue_cand,
+            "n_rescued": int(sum(r["rescued"] for r in reg.values())),
+            "n_rescued_seed_proxy": int(sum(r["seed_proxy"] for r in reg.values())),
             "nonowned_checked": int(len(orph)),
             "nonowned_best_iou_lt050": int((orph.best_iou_final < 0.5).sum()) if len(orph) else 0,
             "nonowned_best_iou_lt050_ge1000vox": int(((orph.best_iou_final < 0.5) & (orph.voxels >= 1000)).sum())

@@ -302,8 +302,10 @@ def cmd_stitch(a) -> int:
     missing = [t.tile_id for t in tiles if not (run_dir(a.name) / "tiles" / t.tile_id / "tile.json").exists()]
     if missing:
         raise RuntimeError(f"{len(missing)} tiles not finished, e.g. {missing[:5]}")
-    meta = stitch(tiles, run_dir(a.name) / "tiles", run_dir(a.name) / f"stitch_{a.route}", a.route, a.match_iou)
-    log(f"stitched {meta['n_instances']} instances ({meta['n_dropped']} dropped) in {meta['seconds']:.0f}s "
+    meta = stitch(tiles, run_dir(a.name) / "tiles", run_dir(a.name) / f"stitch_{a.route}{a.variant}", a.route,
+                  a.match_iou, orphan_rescue=a.orphan_rescue, rescue_min_free=a.rescue_min_free)
+    log(f"stitched{a.variant} {meta['n_instances']} instances ({meta['n_dropped']} dropped, rescued "
+        f"{meta['n_rescued']}, proxy seeds {meta['n_rescued_seed_proxy']}) in {meta['seconds']:.0f}s "
         f"box {meta['box']}")
     return 0
 
@@ -338,9 +340,9 @@ def cmd_evaluate(a) -> int:
     from batos_fullvolume.stream_eval import accumulate, finalize, seed_values
     t0 = time.time()
     tiles, cfg = load_tiles(a.name)
-    sdir = run_dir(a.name) / f"stitch_{a.route}"
+    sdir = run_dir(a.name) / f"stitch_{a.route}{a.variant}"
     meta = json.loads((sdir / "labels_meta.json").read_text(encoding="utf-8"))
-    edir = run_dir(a.name) / f"eval_{a.route}"
+    edir = run_dir(a.name) / f"eval_{a.route}{a.variant}"
     edir.mkdir(exist_ok=True)
     gs = gt_stats()
     roi = roi_inside()
@@ -396,7 +398,10 @@ def cmd_evaluate(a) -> int:
     best = best.sort_values(["g", "iou"], ascending=[True, False]).drop_duplicates("g").set_index("g")
     gv["best_gid"] = gv.gt_label.map(best["p"]).fillna(0).astype(np.int64)
     gv["best_iou"] = gv.gt_label.map(best["iou"])
-    inst["reconciled"] = (inst.matched_replaced > 0) | (inst.contested_won > 0) | (inst.contested_lost > 0)
+    if "rescued" not in inst:
+        inst["rescued"] = 0
+    inst["reconciled"] = ((inst.matched_replaced > 0) | (inst.contested_won > 0) | (inst.contested_lost > 0)
+                          | (inst.rescued > 0))
     ii = inst.set_index("gid")
     gv["best_reconciled"] = gv.best_gid.map(ii["reconciled"]).fillna(False).astype(bool)
     gv["best_crosses_core"] = gv.best_gid.map(ii["crosses_core"]).fillna(False).astype(bool)
@@ -461,7 +466,7 @@ def cmd_evaluate(a) -> int:
            "eval_seconds": round(time.time() - t0, 1), "gate_triggered_tiles": int((man.gate_triggered == True).sum()),  # noqa: E712
            "r_granulo_tiles": man.r_granulo.describe().to_dict(), "r_granulo_central": cfg["r_granulo_central"],
            "halo": cfg["halo"]}
-    out = {"run": a.name, "route": a.route, "counts": counts, "resources": res, "stitch": meta,
+    out = {"run": a.name, "route": a.route, "variant": a.variant, "counts": counts, "resources": res, "stitch": meta,
            "metrics": rows, "seam": seam, "git": git_commit(),
            "timestamp": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
     (edir / "metrics.json").write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
@@ -490,10 +495,14 @@ def main(argv=None) -> int:
     st.add_argument("--name", required=True)
     st.add_argument("--route", default=CFG["stitch"]["route"])
     st.add_argument("--match-iou", type=float, default=float(CFG["stitch"]["match_iou"]))
+    st.add_argument("--orphan-rescue", action="store_true")
+    st.add_argument("--rescue-min-free", type=float, default=0.5)
+    st.add_argument("--variant", default="", help="suffix of the stitch dir, e.g. _rescue")
     e = sub.add_parser("evaluate")
     e.add_argument("--name", required=True)
     e.add_argument("--route", default=CFG["stitch"]["route"])
     e.add_argument("--slab", type=int, default=8)
+    e.add_argument("--variant", default="", help="suffix of the stitch/eval dirs, e.g. _rescue")
     a = ap.parse_args(argv)
     if getattr(a, "workers", 1) > int(CFG["resources"]["max_workers"]):
         raise SystemExit(f"--workers > {CFG['resources']['max_workers']} not allowed")
