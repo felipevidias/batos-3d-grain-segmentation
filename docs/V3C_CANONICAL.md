@@ -97,3 +97,46 @@ acceptance thresholds are unchanged.
 - v3c then runs on a re-cut native window of side round(200 · r / 10) at the same centre. The sizes used are reported.
 - v3 runs on the 200³ probe (its own protocol).
 - Both are evaluated against their own window's GT.
+
+## Amendment 2 (2026-11-10, implementation details; written while the dev/synthetic run is in progress)
+
+The acceptance criteria and thresholds above are **unchanged**. Results seen when this was written: the 12 f = 1.0
+crops and 5 of the 12 f = 2.0 crops (per-crop log lines only, no aggregate). Nothing below depends on them.
+
+**Evaluator (memory).** On a 400³ window, the frozen `batos_v2.evaluate_v2.evaluate` peaks at 4.8 GB; the driver
+reached 5.8 GB on EFRGP01_00_crop02_x2_canon. This is above the 4 GB working rule, so the run was stopped there.
+`src/batos_v3c/eval_lean.py` accumulates the same voxel counts over z-slabs and then applies the frozen matching and
+metric code (the frozen module is imported, never edited). `scripts/check_eval_lean.py` found 0 differences against
+the frozen evaluator:
+- 96 metric rows on the 12 dev crops (2 routes × 2 filters × 2 modes), plus seed statistics, boundary matching and an
+  empty prediction;
+- the 8 rows of the 400³ crop scored with the frozen evaluator (read with round-trip float parsing).
+
+Peak on 400³: 2.1 GB. All later crops are scored with `eval_lean`. The crop02_x2 rows are the frozen evaluator's, and
+they are identical.
+
+**Freeze hashes.** `configs/batos_paper_v3_scalefree.yaml` recorded LF bytes, but this worktree checks out CRLF
+(core.autocrlf). Seven of its files therefore fail a raw-byte SHA check, even though `git diff` against the tag
+`batos-paper-v3-scalefree` is empty and their LF-normalised SHA equals the record. The test-2 driver checks the v3
+freeze on LF-normalised bytes **and** requires an empty `git diff` against that tag. The v3c freeze
+(`scripts/freeze_v3c.py`) records LF-normalised hashes.
+
+**Test set 2 (only if both criteria hold).**
+- Definition: `define_test_crops2.py`, unchanged except its description. Seed 20261109, 52 crops, no overlap with dev
+  or test set 1.
+- Cut: `cut_test2_v3c.py`. It produces the 200³ probes (unchanged cutter) and, per crop:
+  - r_probe = `batos_v3.scale.estimate(probe)`;
+  - S = round(200 · r_probe / 10);
+  - window origin = probe origin + ⌊(200 − S) / 2⌋ per axis (same centre; exact for even S, which holds for every
+    integer r);
+  - if the window would leave the volume, it is shifted inward by the minimum amount and the shift is recorded;
+  - S larger than the volume fails loudly.
+- Run: `run_test2_v3c.py`. v3 runs on the probe (unchanged `run_test_v3.run_v3`); v3c runs on the window with
+  r_probe. Each method is evaluated against its own window's GT with `eval_lean`, under both valid-GT rules:
+  - `fixed1000`: ≥ 1000 native voxels. Primary for v3, as on test set 1.
+  - `canon1000`: ≥ round(1000 (r/10)³) native voxels. Primary for v3c, per Amendment 1.
+- Boundary cost on test 2: on GT grains valid (canon1000) in **both** windows and matched with IoU > 0.5 by both
+  methods (GT label ids are global to the scan), report the per-crop mean IoU and the median signed and absolute
+  relative volume error.
+- Aggregate: `aggregate_test2_v3c.py`. Per specimen, EFR_internal, external and all. Crop-macro and pooled tables are
+  kept separate. Native sizes are reported. Rows go to results/all_runs.csv.

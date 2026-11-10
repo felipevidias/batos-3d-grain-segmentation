@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Phase 5f step 4: define held-out TEST SET 2 by the same GT-free rule as test set 1 and write
-data/metadata/crops_test2.json (seed 20261109).
+"""Define held-out TEST SET 2 by the same GT-free rule as test set 1 and write data/metadata/crops_test2.json
+(seed 20261109). Written in Phase 5f step 4 (never run there); run in Phase 5i after the batos-paper-v3c freeze.
 
 The rule is that of scripts/define_test_crops.py (its geometry / fraction / overlap functions and constants are imported
 unchanged; rule text stored verbatim in the JSON), with ONE addition to step 4: a box may not overlap any test-set-1 box
@@ -109,9 +109,10 @@ def main() -> int:
             raise RuntimeError(f"{a['crop_id']} overlaps test set 1: {bad}")
     out = {
         "schema_version": 2,
-        "description": "Phase 5f TEST SET 2: 52 new 200^3 crops (EFR 6/scan; EFS, EMR, EMS, EOR, EOS 4/scan), same GT-free "
-                       "rule as test set 1 plus no overlap with any test-set-1 box. Methods: frozen / fixflat / v3 / "
-                       "v3.1 (batos-paper-v3.1, frozen before this set was defined).",
+        "description": "TEST SET 2: 52 new 200^3 crops (EFR 6/scan; EFS, EMR, EMS, EOR, EOS 4/scan), same GT-free "
+                       "rule as test set 1 plus no overlap with any test-set-1 box. Defined in Phase 5i after the "
+                       "batos-paper-v3c freeze (v3.1 of Phase 5f was never frozen). Methods: v3 (200^3 probe) and v3c "
+                       "(re-cut window of native side round(200 r/10), scripts/cut_test2_v3c.py).",
         "created": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "generator": "scripts/define_test_crops2.py", "seed": args.seed,
         "rule": t1["rule"] + "\n 8. (test set 2) A box may also not overlap any test-set-1 box of the same specimen "
