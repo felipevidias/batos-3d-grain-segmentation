@@ -757,3 +757,20 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   (e11 empty markers). `ws_mask_closing_iterations` 0 failed on all 12 crops. This is a sweep artifact: scipy
   `iterations=0` means "until convergence" and empties the mask. The point is invalid and was not re-run.
 - Next: Phase 2 (Cellpose baselines).
+
+## 2026-11-09/10 — Phase 5h: v3.2 per-grain marker uniqueness (worktree `..\batos-v32`, branch `journal-extension-v32`)
+
+- Design record and acceptance criteria were written before any run: `docs/V32_UNIQUENESS.md`.
+  - Hypotheses are tested in the order H1 → H2 → H3; the first that holds is frozen.
+  - Thresholds: f = 1.0 crop-macro sel F1@0.50 ≥ 0.985; f = 0.7 / 1.4 / 2.0 ≥ v3 − 0.005.
+- Code: `src/batos_v32/` (uniqueness rules, supports export, prefix/tail split), `scripts/run_v32_dev.py`,
+  `scripts/aggregate_v32_dev.py`.
+  - The shared v3.1 prefix runs once per crop and is kept unpruned for later hypotheses.
+  - H1 basin seeds = the EDT-Otsu control's markers before count matching (NMS 6 s). No new constant.
+- Identity: with hypothesis `none` the prefix/tail split reproduces v3 (EFRGP01_00_crop04, f = 1) and v3.1
+  (EFRGP01_00_crop02_x2, f = 2) bit-for-bit, on both segmentations.
+- H1, f = 1.0 complete (12/12). sel, seed-ignore, no filter:
+  - crop-macro F1@0.50 0.991 ± 0.008 (v3 0.989), min 0.974 (00_crop06, = v3); F1@0.75 0.988 (v3 0.986).
+  - pooled F1@0.50 0.989: TP 2767, FP 18, FN 41 (v3: 2765 / 25 / 43).
+  - Grains: valid grains split 5 → 0; unseeded 27 → 27.
+  - **Criterion 1 passes.** Run continues with f = 2.0, 1.4, 0.7 (`C:\BA_TOS_DATA\runs\v32_dev_H1.log`).
