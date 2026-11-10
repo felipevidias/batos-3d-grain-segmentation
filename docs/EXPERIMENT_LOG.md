@@ -874,3 +874,30 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - Valid GT (≥ 1000 canonical voxels) equals the dev counts per crop (e.g. crop02: 265 at every factor), so the
     windows cover the same physical grains.
   - v3c uses r_probe as its scale input; the canonical crops are all 200³.
+
+## 2026-11-10 — Phase 5i: v3c dev + synthetic result (acceptance met)
+- Run: `python -I scripts/run_v3c_dev.py`, 48 crops (12 dev at f = 1.0, plus 36 canonical-FOV synthetic windows),
+  then `python -I scripts/aggregate_v3c_dev.py` → `results/v3c_dev/{tables.md,acceptance.csv,...}`. The 384 v3c rows
+  are in `results/all_runs.csv` (`v3c_dev/<crop>`, model "batos-v3c (pre-freeze)").
+- Acceptance (crop-macro F1@0.50, BA-TOS_sel, seed-ignore, no filter, 12 crops each). **All four pass.**
+  - f = 1.0: 0.986 (threshold 0.976).
+  - f = 0.7: 0.988; f = 1.4: 0.983; f = 2.0: 0.985 (thresholds 0.966).
+  - Minimum crop: 0.930 (00_crop06 at f = 2.0, under-seeded at 0.95 markers / valid grain). No crop is below 0.90 at
+    any factor. For reference, fixflat / v3 on the 5e 200³ windows at f = 2.0 score 0.239 / 0.938.
+- Seeds: the median markers / valid grain is 0.99–1.00 at every factor, split valid grains are ≤ 0.2 %, and the gate
+  never fires.
+- Boundary cost of resampling at f = 1.0 (same crops as v3), median matched IoU on common grains:
+  0.870 (v3c) vs 0.868 (v3). The median signed volume error is −4.9 % for both, and |vol. err.| is 5.9 % for both.
+  The per-crop F1 equals fixflat at f = 1 by construction (identity). It differs from v3 where v3's openrec differs:
+  01_crop03 0.995 / 0.995 and 01_crop05 0.992 / 1.000.
+- Memory incident and fix:
+  - The first f = 2.0 evaluation (400³) drove the driver to 5.8 GB, above the 4 GB budget. The frozen
+    `evaluate_v2` alone peaks at 4.0 GB (markers_dominant) / 4.8 GB (fraction) on 400³. The run was stopped.
+  - New `src/batos_v3c/eval_lean.py` uses slab-wise counting and reuses the frozen matching. It is exactly equal to
+    `evaluate_v2`, checked by `scripts/check_eval_lean.py`: 96 dev rows, seed stats, matching, the empty prediction
+    and the 8 stored 400³ rows, with 0 differences.
+  - After the restart, the maximum peaks were 3.65 GB in the run subprocess and 1.58 GB in the driver.
+- v3 freeze-hash finding: `run_test_v3.check_freeze()` fails in this worktree on 7 files purely from CRLF checkout
+  (`core.autocrlf`). Each has an empty `git diff` against `batos-paper-v3-scalefree`, and its LF-normalised SHA-256
+  equals the record. The v3c freeze therefore records LF-normalised hashes (Amendment 2).
+- Next: freeze batos-paper-v3c, define test set 2 (seed 20261109), cut probes + v3c windows, run v3 and v3c once.

@@ -13,11 +13,15 @@ all three methods score the same 12 dev crops.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "src"))
+from batos_v2.extinction_run import upsert  # noqa: E402
+from batos_v2.run_crop import git_state  # noqa: E402
 V3 = Path(r"C:\BA_TOS_DATA\runs\v3_scale_test\eval")
 V3C = Path(r"C:\BA_TOS_DATA\runs\v3c_dev\eval")
 OUT = REPO / "results" / "v3c_dev"
@@ -112,6 +116,22 @@ def main() -> int:
         L.append(f"| {v['dev_crop_id']} | {v['factor']:g} | " + " | ".join(
             "—" if pd.isna(v.get(m)) else f"{v[m]:.3f}" for m in METHODS) + " |")
     (OUT / "tables.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+
+    git = git_state()["commit"]
+    ii, rows = info.set_index("crop_id"), []
+    for r in per[per.method == "v3c"].itertuples():  # v3 / fixflat rows are already logged by Phase 5e
+        i = ii.loc[r.crop_id]
+        rows.append({"experiment_id": f"v3c_dev/{r.crop_id}", "method": r.route, "model": "batos-v3c (pre-freeze)",
+                     "volume": r.dev_crop_id[:10], "crop": r.crop_id, "device": "cpu (AMD Ryzen 7 5700X)",
+                     "parameters": f"size_filter={r.size_filter};eval=eval_lean:{r.mode};split=dev_synthetic;"
+                                   f"factor={r.factor};r_granulo={i.r_granulo};min_gt={i.min_gt_voxels}",
+                     "runtime_seconds": i.seconds, "peak_memory_mb": i.peak_mb, "tp": r.tp_iou050,
+                     "fp": r.fp_iou050, "fn": r.fn_iou050, "precision": r.precision_iou050, "recall": r.recall_iou050,
+                     "f1_025": r.f1_iou025, "f1_050": r.f1_iou050, "f1_075": r.f1_iou075, "ap50": r.ap_iou050,
+                     "ap75": r.ap_iou075, "mean_matched_iou": r.mean_matched_iou050,
+                     "n_pred": r.prediction_count_evaluable, "n_gt": r.valid_gt_count, "git_commit": git,
+                     "run_json": str(V3C / f"{r.crop_id}.json")})
+    upsert(REPO / "results" / "all_runs.csv", rows, ["experiment_id", "method", "parameters"])
     print("\n".join(L[:12]))
     return 0
 
