@@ -814,3 +814,24 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - Test set 2 was not cut and is still unseen; seed 20261109 is reserved.
   - v3 (`batos-paper-v3-scalefree`) stays the journal method.
   - Tables: `results/v32_dev/tables.md`.
+
+## 2026-11-10 — Journal qualitative figures (worktree `..\batos-v32`)
+- `scripts/make_journal_figures.py`: read-only on existing outputs, matplotlib only, 300 dpi, one figure per call.
+  Masters and per-figure numbers are in `C:\BA_TOS_DATA\figures\`; PNGs and `CAPTIONS.md` are copied to
+  `paper/figs/journal/`.
+- Fig. 1: grey | GT | v2 | v2-fixflat | v3 | cpsam_v2 on 00_crop04, 00_crop05, EMRGP01_00_test01, EORGP01_00_test01.
+  - F1@0.50 was recomputed with `evaluate_v2` (no-marker fraction 0.50, no filter).
+  - It equals the recorded evaluations on all 13 panels that have one. v2 on the dev crops has no record in this mode.
+  - fixflat on EORGP01_00_test01 is the recorded failure (scored 0).
+- Fig. 2: crop05 orthogonal slices with membrane, air, GT, and ToS-MIN markers (v2 53, v3 188).
+- Fig. 3: frozen vs fixed flatten on crop05 (bg_ref 0.9 vs 176.7; grain median 43 vs 164).
+- Fig. 4: r_granulo and e13 r̂ vs GT inscribed radius on 64 crops. e13 is missing on EOSGP01_00_test03 (recorded e13
+  failure). Within ±10 %: 64/64 vs 19/63.
+- Fig. 5: GT, v3 and cpsam_v2 contours. Median volume error on grains matched by both:
+  - crop04: v3 −3.7 %, cpsam_v2 +11.7 %;
+  - EOR test01: v3 +6.4 %, cpsam_v2 +9.4 %.
+- Fig. 6: smoke_center3 (`stitch_BA-TOS_sel_rescue`) block faces, plus marching cubes of 55 central grains.
+  - The faces are cut 30 voxels in: the outer shell is half empty because of centroid ownership with no neighbouring
+    tiles (labelled 0.10–0.30 on the faces vs 0.50–0.64 inside).
+  - The remaining black edge bands are outside the cylindrical specimen (radius ≈ 349; edges ≈ 390 from the axis;
+    GT is empty there too).
