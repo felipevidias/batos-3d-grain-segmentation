@@ -1,0 +1,1525 @@
+{
+ "schema_version": 2,
+ "description": "TEST SET 2: 51 new 200^3 crops ({'EFR': 11, 'EFS': 8, 'EMR': 8, 'EMS': 8, 'EOR': 8, 'EOS': 8}; 1 stratum cells skipped, see skipped_cells), same GT-free rule as test set 1 plus no overlap with any test-set-1 box. Defined in Phase 5i after the batos-paper-v3c freeze. Methods: v3 (200^3 probe) and v3c (re-cut window of native side round(200 r/10), scripts/cut_test2_v3c.py).",
+ "created": "2026-11-10T20:13:25-03:00",
+ "generator": "scripts/define_test_crops2_skip.py (rule of scripts/define_test_crops2.py + fallback 9)",
+ "seed": 20261109,
+ "rule": "1. Specimen mask per scan: greyscale subsampled by 4 on every axis; one Otsu threshold over all nonzero voxels;\n    per z-slice: binary closing (3 iterations), fill holes, largest 2-D component. This is the specimen cross-section\n    bounded by the confining membrane (the thin bright sheet between grains and air); beyond it is exterior air.\n 2. Specimen z-range: slices whose equivalent radius sqrt(area/pi) is within +-3 % of the median, in BOTH scans of the\n    specimen (the end caps / platens have a larger cross-section). Box z-extent [z, z+200) must lie inside it.\n 3. Specimen axis: median over those slices of the cross-section centroid, per scan.\n 4. Candidates: origins on a 25-voxel lattice (x, y, z), box fully inside the volume and the specimen z-range.\n    A box may not overlap (any voxel) an already selected test box of the same specimen (the frame is shared by the\n    two scans, so this also holds across scans), nor, for EFR, any of the 6 development origins (12 dev crops).\n 5. f = specimen fraction of the box (mean of the subsampled mask over the box, in the scan the box is cut from).\n    Class \"interior\": f >= 0.99. Class \"boundary\" (intersects the membrane, contains exterior air): 0.40 <= f <= 0.80\n    (the EFR development crops span f = 0.50 (crop05) .. 0.79 (crop03) .. 1.00).\n 6. Strata per specimen: z-tier (origin z in equal parts of the admissible range) x angular half of the box centre\n    around the specimen axis (theta = atan2(dy, dx) in [0, pi) -> scan _00, [-pi, 0) -> scan _01) x class\n    (interior / boundary). One crop per cell. EFR: 3 z-tiers (3 interior + 3 boundary per scan); external specimens:\n    2 z-tiers (2 interior + 2 boundary per scan). Every scan has >= 1 crop that intersects the specimen boundary.\n 7. Cells are filled in a fixed order (specimen EFR, EFS, EMR, EMS, EOR, EOS; scan half; tier; class); in each cell one\n    admissible candidate is drawn uniformly at random with ONE numpy.random.default_rng(SEED) shared by all specimens.\n    If a cell has no candidate the script fails (no relaxation).\n 8. (test set 2) A box may also not overlap any test-set-1 box of the same specimen (data/metadata/crops_test.json).\n 9. (test set 2, fallback fixed before any outcome, 2026-11-10) A stratum cell with no admissible candidate is skipped and recorded in 'skipped_cells'; no constraint is relaxed and no random number is drawn for it.",
+ "parameters": {
+  "subsample": 4,
+  "size": 200,
+  "lattice": 25,
+  "f_interior_min": 0.99,
+  "f_boundary_range": [
+   0.4,
+   0.8
+  ],
+  "radius_tolerance": 0.03,
+  "z_tiers_per_scan": {
+   "EFR": 3,
+   "EFS": 2,
+   "EMR": 2,
+   "EMS": 2,
+   "EOR": 2,
+   "EOS": 2
+  },
+  "per_specimen": {
+   "EFR": {
+    "admissible_origin_z": [
+     125,
+     1275
+    ],
+    "z_tier_edges": [
+     125.0,
+     516.6666666666667,
+     908.3333333333334,
+     1300.0
+    ],
+    "scan_of_angular_half": {
+     "0": "EFRGP01_00",
+     "1": "EFRGP01_01"
+    },
+    "excluded_boxes": "12 development crops (6 origins) + 12 test-set-1 boxes"
+   },
+   "EFS": {
+    "admissible_origin_z": [
+     125,
+     1275
+    ],
+    "z_tier_edges": [
+     125.0,
+     712.5,
+     1300.0
+    ],
+    "scan_of_angular_half": {
+     "0": "EFSGP01_00",
+     "1": "EFSGP01_01"
+    },
+    "excluded_boxes": "8 test-set-1 boxes"
+   },
+   "EMR": {
+    "admissible_origin_z": [
+     125,
+     1275
+    ],
+    "z_tier_edges": [
+     125.0,
+     712.5,
+     1300.0
+    ],
+    "scan_of_angular_half": {
+     "0": "EMRGP01_00",
+     "1": "EMRGP01_01"
+    },
+    "excluded_boxes": "8 test-set-1 boxes"
+   },
+   "EMS": {
+    "admissible_origin_z": [
+     125,
+     1275
+    ],
+    "z_tier_edges": [
+     125.0,
+     712.5,
+     1300.0
+    ],
+    "scan_of_angular_half": {
+     "0": "EMSGP01_00",
+     "1": "EMSGP01_01"
+    },
+    "excluded_boxes": "8 test-set-1 boxes"
+   },
+   "EOR": {
+    "admissible_origin_z": [
+     125,
+     1275
+    ],
+    "z_tier_edges": [
+     125.0,
+     712.5,
+     1300.0
+    ],
+    "scan_of_angular_half": {
+     "0": "EORGP01_00",
+     "1": "EORGP01_01"
+    },
+    "excluded_boxes": "8 test-set-1 boxes"
+   },
+   "EOS": {
+    "admissible_origin_z": [
+     125,
+     1275
+    ],
+    "z_tier_edges": [
+     125.0,
+     712.5,
+     1300.0
+    ],
+    "scan_of_angular_half": {
+     "0": "EOSGP01_00",
+     "1": "EOSGP01_01"
+    },
+    "excluded_boxes": "8 test-set-1 boxes"
+   }
+  }
+ },
+ "gt_used": false,
+ "geometry": {
+  "EFRGP01_00": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 27453.0,
+   "z_ok": [
+    120,
+    1476
+   ],
+   "axis_xy": [
+    707.4463762532371,
+    710.6008570520565
+   ],
+   "req_median": 351.6417660439386,
+   "mask_sha256": "befa358897274fdd51fc73da6fdbc3bd299d5818fb36c51a726468f49dfda8f7"
+  },
+  "EFRGP01_01": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 27422.0,
+   "z_ok": [
+    124,
+    1476
+   ],
+   "axis_xy": [
+    706.5792581131153,
+    711.3007314868086
+   ],
+   "req_median": 352.0687662361681,
+   "mask_sha256": "dbf791e48b7ebbebb11d8a0b01090ad66b41ddd2909c836177551a7c076ef828"
+  },
+  "EFSGP01_00": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 27334.0,
+   "z_ok": [
+    112,
+    1476
+   ],
+   "axis_xy": [
+    700.5624435731127,
+    698.0979897397516
+   ],
+   "req_median": 351.3121148156197,
+   "mask_sha256": "57585ed1235b7943246ca91e148ca7c067cc474f820d2d016abf913e04494436"
+  },
+  "EFSGP01_01": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 27343.0,
+   "z_ok": [
+    120,
+    1476
+   ],
+   "axis_xy": [
+    700.0492729227835,
+    698.7662846397718
+   ],
+   "req_median": 351.7612335425139,
+   "mask_sha256": "793f5757ee93580734b0e1f495017aaae1fa3f8eaa3bd09c14532cf169f0441c"
+  },
+  "EMRGP01_00": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28437.0,
+   "z_ok": [
+    104,
+    1472
+   ],
+   "axis_xy": [
+    700.4170279532599,
+    695.9126716552915
+   ],
+   "req_median": 351.2976175550642,
+   "mask_sha256": "7140e34f5bdffbfb304804aec1b24e599566e3d0f69353befb1a5b1d47c9f66d"
+  },
+  "EMRGP01_01": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28471.0,
+   "z_ok": [
+    112,
+    1476
+   ],
+   "axis_xy": [
+    700.0398734181772,
+    695.7560847543411
+   ],
+   "req_median": 351.5657201043711,
+   "mask_sha256": "5e7e0b0b2f678bf15386f3d35b2923f67e7232d033c6bb080cfb20527e507432"
+  },
+  "EMSGP01_00": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28484.0,
+   "z_ok": [
+    108,
+    1472
+   ],
+   "axis_xy": [
+    701.7203937159949,
+    697.654696206813
+   ],
+   "req_median": 350.73538722822434,
+   "mask_sha256": "be65f39de0d365a5b4999e64e25be41fa0f772296a6a48af5429d44a43656836"
+  },
+  "EMSGP01_01": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28570.0,
+   "z_ok": [
+    112,
+    1476
+   ],
+   "axis_xy": [
+    701.6313215954478,
+    697.2232788141986
+   ],
+   "req_median": 351.1018459493173,
+   "mask_sha256": "0ef77ea6a29945c84f1e45eae7fe034a9f230dc89561d3daab857ff86641bcf2"
+  },
+  "EORGP01_00": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28762.0,
+   "z_ok": [
+    104,
+    1476
+   ],
+   "axis_xy": [
+    698.6170389135646,
+    699.4232002738174
+   ],
+   "req_median": 350.1540735159556,
+   "mask_sha256": "84b8249c223c900d3586e5fe6e351f967be731ca0720a31196bd4e813b06ccd9"
+  },
+  "EORGP01_01": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28771.0,
+   "z_ok": [
+    112,
+    1476
+   ],
+   "axis_xy": [
+    698.2503942192187,
+    699.0741696203052
+   ],
+   "req_median": 350.5465660101095,
+   "mask_sha256": "d1b12a18e009322577f537eed6c1a8dc4705463faf229d8148254fcff06274d2"
+  },
+  "EOSGP01_00": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28639.0,
+   "z_ok": [
+    104,
+    1476
+   ],
+   "axis_xy": [
+    698.2672731703586,
+    701.2776427825133
+   ],
+   "req_median": 350.7825766327638,
+   "mask_sha256": "1b561cdae33e8f983c4a6b73dad9371bd117c85295016403d94e0551d2a7a82a"
+  },
+  "EOSGP01_01": {
+   "shape": [
+    1600,
+    1400,
+    1400
+   ],
+   "otsu": 28706.0,
+   "z_ok": [
+    112,
+    1476
+   ],
+   "axis_xy": [
+    698.2710561220514,
+    701.3483277972908
+   ],
+   "req_median": 351.0945930526966,
+   "mask_sha256": "e5e4d65a937e99e1e986c76cebcb79d45eed0bc0a405b815a8ad66a062959d54"
+  }
+ },
+ "source_volumes": {
+  "EFRGP01_00": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFR\\Greyscale\\EFRGP01_00.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFR\\Label\\EFR_labels.7z",
+   "labels_member": "EFRGP01_00.tif"
+  },
+  "EFRGP01_01": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFR\\Greyscale\\EFRGP01_01.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFR\\Label\\EFR_labels.7z",
+   "labels_member": "EFRGP01_01.tif"
+  },
+  "EFSGP01_00": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFS\\Greyscale\\EFSGP01_00.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFS\\Label\\EFS_labels.7z",
+   "labels_member": "EFSGP01_00.tif"
+  },
+  "EFSGP01_01": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFS\\Greyscale\\EFSGP01_01.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EFS\\Label\\EFS_labels.7z",
+   "labels_member": "EFSGP01_01.tif"
+  },
+  "EMRGP01_00": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMR\\Greyscale\\EMRGP01_00.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMR\\Label\\EMR_labels.7z",
+   "labels_member": "EMRGP01_00.tif"
+  },
+  "EMRGP01_01": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMR\\Greyscale\\EMRGP01_01.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMR\\Label\\EMR_labels.7z",
+   "labels_member": "EMRGP01_01.tif"
+  },
+  "EMSGP01_00": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMS\\Greyscale\\EMSGP01_00.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMS\\Label\\EMS_labels.7z",
+   "labels_member": "EMSGP01_00.tif"
+  },
+  "EMSGP01_01": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMS\\Greyscale\\EMSGP01_01.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EMS\\Label\\EMS_labels.7z",
+   "labels_member": "EMSGP01_01.tif"
+  },
+  "EORGP01_00": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOR\\Greyscale\\EORGP01_00.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOR\\Label\\EOR_labels.7z",
+   "labels_member": "EORGP01_00.tif"
+  },
+  "EORGP01_01": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOR\\Greyscale\\EORGP01_01.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOR\\Label\\EOR_labels.7z",
+   "labels_member": "EORGP01_01.tif"
+  },
+  "EOSGP01_00": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOS\\Greyscale\\EOSGP01_00.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOS\\Label\\EOS_labels.7z",
+   "labels_member": "EOSGP01_00.tif"
+  },
+  "EOSGP01_01": {
+   "gray_path": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOS\\Greyscale\\EOSGP01_01.tif",
+   "shape_zyx": [
+    1600,
+    1400,
+    1400
+   ],
+   "dtype": "uint16",
+   "labels_archive": "C:\\Users\\USER\\Downloads\\PhDUpload\\PhDUpload\\EOS\\Label\\EOS_labels.7z",
+   "labels_member": "EOSGP01_01.tif"
+  }
+ },
+ "crop_convention": {
+  "size": 200,
+  "axis_order": "zyx",
+  "slicing_status": "verified",
+  "slicing_evidence": [
+   "CODE (supports zyx): origin/batos-ls-auto-tile-pilot:CodeReport_LysandreMacke/code/segmentation/batos/batos_make_paired_crop.py slices tifffile.memmap(...)[z0:z1, y0:y1, x0:x1] from --x --y --z; this is the script that cut the historical crops (scripts/run_second_scan_EFRGP01_01_selected_crops.sh).",
+   "EMPIRICAL Q7 (inconclusive, 2026-11-04): Desktop/batos codigos/lysandre_code/experiments/crops/crop_600_800_300_200.tif (200^3 uint8) matches NO window of EFRGP01_00/01 (Downloads or Desktop copies) at origin (600,800,300) under any of 6 axis orders x 6 transposes (max corr 0.016). That file is not a crop of these scans at that origin; it cannot settle Q7. (Superseded by the GT-count verification.)",
+   "PROPOSED CHECK: after GT extraction, run scripts/make_crops.py --probe-axis-orders and compare valid-GT counts per crop with historical_gt_valid_legacy below (sum 2808)."
+  ],
+  "gray_written": "raw dtype (uint16) window, as batos_make_paired_crop.py *_gray_crop.tif",
+  "gt_validity": "GT labels < 1000 voxels or touching any crop face are excluded from evaluation",
+  "slicing": "vol[z:z+size, y:y+size, x:x+size] on the (Z,Y,X) volume",
+  "verification": "2026-11-04: scripts/make_crops.py --probe-axis-orders on C:\\BA_TOS_DATA\\gt_full GT. zyx reproduces all 12 historical gt_valid counts exactly (265/216/272/129/271/263; 262/213/264/128/265/260; sum 2808). Next best (zxy) matches 2/12 (crop04 of both scans only)."
+ },
+ "crops": [
+  {
+   "x": 675,
+   "y": 825,
+   "z": 500,
+   "crop_id": "EFRGP01_00_t2_01",
+   "specimen": "EFR",
+   "scan": "EFRGP01_00",
+   "crop": "t2_01",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 72.5,
+   "n_admissible_in_cell": 19,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_01\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_01\\gray.tif"
+  },
+  {
+   "x": 800,
+   "y": 875,
+   "z": 225,
+   "crop_id": "EFRGP01_00_t2_02",
+   "specimen": "EFR",
+   "scan": "EFRGP01_00",
+   "crop": "t2_02",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.6477,
+   "theta_deg": 53.9,
+   "n_admissible_in_cell": 243,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_02\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_02\\gray.tif"
+  },
+  {
+   "x": 250,
+   "y": 675,
+   "z": 700,
+   "crop_id": "EFRGP01_00_t2_03",
+   "specimen": "EFR",
+   "scan": "EFRGP01_00",
+   "crop": "t2_03",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.4005,
+   "theta_deg": 169.8,
+   "n_admissible_in_cell": 243,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_03\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_03\\gray.tif"
+  },
+  {
+   "x": 400,
+   "y": 675,
+   "z": 1275,
+   "crop_id": "EFRGP01_00_t2_04",
+   "specimen": "EFR",
+   "scan": "EFRGP01_00",
+   "crop": "t2_04",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 2,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 162.8,
+   "n_admissible_in_cell": 430,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_04\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_04\\gray.tif"
+  },
+  {
+   "x": 650,
+   "y": 925,
+   "z": 1200,
+   "crop_id": "EFRGP01_00_t2_05",
+   "specimen": "EFR",
+   "scan": "EFRGP01_00",
+   "crop": "t2_05",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 2,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.6614,
+   "theta_deg": 82.3,
+   "n_admissible_in_cell": 767,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_05\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_00_t2_05\\gray.tif"
+  },
+  {
+   "x": 500,
+   "y": 450,
+   "z": 500,
+   "crop_id": "EFRGP01_01_t2_06",
+   "specimen": "EFR",
+   "scan": "EFRGP01_01",
+   "crop": "t2_06",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -123.5,
+   "n_admissible_in_cell": 161,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_06\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_06\\gray.tif"
+  },
+  {
+   "x": 800,
+   "y": 325,
+   "z": 200,
+   "crop_id": "EFRGP01_01_t2_07",
+   "specimen": "EFR",
+   "scan": "EFRGP01_01",
+   "crop": "t2_07",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.4798,
+   "theta_deg": -56.0,
+   "n_admissible_in_cell": 352,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_07\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_07\\gray.tif"
+  },
+  {
+   "x": 775,
+   "y": 475,
+   "z": 700,
+   "crop_id": "EFRGP01_01_t2_08",
+   "specimen": "EFR",
+   "scan": "EFRGP01_01",
+   "crop": "t2_08",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.9994,
+   "theta_deg": -39.0,
+   "n_admissible_in_cell": 9,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_08\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_08\\gray.tif"
+  },
+  {
+   "x": 300,
+   "y": 450,
+   "z": 800,
+   "crop_id": "EFRGP01_01_t2_09",
+   "specimen": "EFR",
+   "scan": "EFRGP01_01",
+   "crop": "t2_09",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.484,
+   "theta_deg": -152.2,
+   "n_admissible_in_cell": 151,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_09\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_09\\gray.tif"
+  },
+  {
+   "x": 600,
+   "y": 400,
+   "z": 1275,
+   "crop_id": "EFRGP01_01_t2_10",
+   "specimen": "EFR",
+   "scan": "EFRGP01_01",
+   "crop": "t2_10",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 2,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -91.8,
+   "n_admissible_in_cell": 434,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_10\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_10\\gray.tif"
+  },
+  {
+   "x": 875,
+   "y": 400,
+   "z": 1100,
+   "crop_id": "EFRGP01_01_t2_11",
+   "specimen": "EFR",
+   "scan": "EFRGP01_01",
+   "crop": "t2_11",
+   "size": 200,
+   "role": "test2_internal",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 2,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.5335,
+   "theta_deg": -38.2,
+   "n_admissible_in_cell": 243,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_11\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFRGP01_01_t2_11\\gray.tif"
+  },
+  {
+   "x": 450,
+   "y": 725,
+   "z": 400,
+   "crop_id": "EFSGP01_00_t2_01",
+   "specimen": "EFS",
+   "scan": "EFSGP01_00",
+   "crop": "t2_01",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 139.9,
+   "n_admissible_in_cell": 1785,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_01\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_01\\gray.tif"
+  },
+  {
+   "x": 525,
+   "y": 950,
+   "z": 675,
+   "crop_id": "EFSGP01_00_t2_02",
+   "specimen": "EFS",
+   "scan": "EFSGP01_00",
+   "crop": "t2_02",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.4524,
+   "theta_deg": 102.1,
+   "n_admissible_in_cell": 1831,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_02\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_02\\gray.tif"
+  },
+  {
+   "x": 550,
+   "y": 625,
+   "z": 1275,
+   "crop_id": "EFSGP01_00_t2_03",
+   "specimen": "EFS",
+   "scan": "EFSGP01_00",
+   "crop": "t2_03",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 152.0,
+   "n_admissible_in_cell": 656,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_03\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_03\\gray.tif"
+  },
+  {
+   "x": 775,
+   "y": 900,
+   "z": 1150,
+   "crop_id": "EFSGP01_00_t2_04",
+   "specimen": "EFS",
+   "scan": "EFSGP01_00",
+   "crop": "t2_04",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.4912,
+   "theta_deg": 60.0,
+   "n_admissible_in_cell": 1306,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_04\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_00_t2_04\\gray.tif"
+  },
+  {
+   "x": 450,
+   "y": 525,
+   "z": 450,
+   "crop_id": "EFSGP01_01_t2_05",
+   "specimen": "EFS",
+   "scan": "EFSGP01_01",
+   "crop": "t2_05",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -153.8,
+   "n_admissible_in_cell": 351,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_05\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_05\\gray.tif"
+  },
+  {
+   "x": 250,
+   "y": 575,
+   "z": 675,
+   "crop_id": "EFSGP01_01_t2_06",
+   "specimen": "EFS",
+   "scan": "EFSGP01_01",
+   "crop": "t2_06",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.4515,
+   "theta_deg": -176.1,
+   "n_admissible_in_cell": 1148,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_06\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_06\\gray.tif"
+  },
+  {
+   "x": 800,
+   "y": 500,
+   "z": 875,
+   "crop_id": "EFSGP01_01_t2_07",
+   "specimen": "EFS",
+   "scan": "EFSGP01_01",
+   "crop": "t2_07",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.9986,
+   "theta_deg": -26.3,
+   "n_admissible_in_cell": 280,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_07\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_07\\gray.tif"
+  },
+  {
+   "x": 550,
+   "y": 250,
+   "z": 1200,
+   "crop_id": "EFSGP01_01_t2_08",
+   "specimen": "EFS",
+   "scan": "EFSGP01_01",
+   "crop": "t2_08",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.4665,
+   "theta_deg": -98.2,
+   "n_admissible_in_cell": 1227,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_08\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EFSGP01_01_t2_08\\gray.tif"
+  },
+  {
+   "x": 550,
+   "y": 600,
+   "z": 250,
+   "crop_id": "EMRGP01_00_t2_01",
+   "specimen": "EMR",
+   "scan": "EMRGP01_00",
+   "crop": "t2_01",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 175.4,
+   "n_admissible_in_cell": 1488,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_01\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_01\\gray.tif"
+  },
+  {
+   "x": 400,
+   "y": 825,
+   "z": 125,
+   "crop_id": "EMRGP01_00_t2_02",
+   "specimen": "EMR",
+   "scan": "EMRGP01_00",
+   "crop": "t2_02",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.7451,
+   "theta_deg": 131.2,
+   "n_admissible_in_cell": 1898,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_02\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_02\\gray.tif"
+  },
+  {
+   "x": 400,
+   "y": 600,
+   "z": 750,
+   "crop_id": "EMRGP01_00_t2_03",
+   "specimen": "EMR",
+   "scan": "EMRGP01_00",
+   "crop": "t2_03",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 178.8,
+   "n_admissible_in_cell": 650,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_03\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_03\\gray.tif"
+  },
+  {
+   "x": 500,
+   "y": 925,
+   "z": 1225,
+   "crop_id": "EMRGP01_00_t2_04",
+   "specimen": "EMR",
+   "scan": "EMRGP01_00",
+   "crop": "t2_04",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.5188,
+   "theta_deg": 107.0,
+   "n_admissible_in_cell": 1862,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_04\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_00_t2_04\\gray.tif"
+  },
+  {
+   "x": 750,
+   "y": 575,
+   "z": 275,
+   "crop_id": "EMRGP01_01_t2_05",
+   "specimen": "EMR",
+   "scan": "EMRGP01_01",
+   "crop": "t2_05",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -7.9,
+   "n_admissible_in_cell": 311,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_05\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_05\\gray.tif"
+  },
+  {
+   "x": 800,
+   "y": 300,
+   "z": 400,
+   "crop_id": "EMRGP01_01_t2_06",
+   "specimen": "EMR",
+   "scan": "EMRGP01_01",
+   "crop": "t2_06",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.4172,
+   "theta_deg": -55.9,
+   "n_admissible_in_cell": 2167,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_06\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_06\\gray.tif"
+  },
+  {
+   "x": 675,
+   "y": 375,
+   "z": 1275,
+   "crop_id": "EMRGP01_01_t2_07",
+   "specimen": "EMR",
+   "scan": "EMRGP01_01",
+   "crop": "t2_07",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.993,
+   "theta_deg": -71.2,
+   "n_admissible_in_cell": 559,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_07\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_07\\gray.tif"
+  },
+  {
+   "x": 300,
+   "y": 525,
+   "z": 1100,
+   "crop_id": "EMRGP01_01_t2_08",
+   "specimen": "EMR",
+   "scan": "EMRGP01_01",
+   "crop": "t2_08",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.682,
+   "theta_deg": -166.7,
+   "n_admissible_in_cell": 1020,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_08\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMRGP01_01_t2_08\\gray.tif"
+  },
+  {
+   "x": 700,
+   "y": 675,
+   "z": 400,
+   "crop_id": "EMSGP01_00_t2_01",
+   "specimen": "EMS",
+   "scan": "EMSGP01_00",
+   "crop": "t2_01",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 38.2,
+   "n_admissible_in_cell": 2032,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_01\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_01\\gray.tif"
+  },
+  {
+   "x": 300,
+   "y": 600,
+   "z": 150,
+   "crop_id": "EMSGP01_00_t2_02",
+   "specimen": "EMS",
+   "scan": "EMSGP01_00",
+   "crop": "t2_02",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.6863,
+   "theta_deg": 179.6,
+   "n_admissible_in_cell": 2016,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_02\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_02\\gray.tif"
+  },
+  {
+   "x": 725,
+   "y": 625,
+   "z": 1050,
+   "crop_id": "EMSGP01_00_t2_03",
+   "specimen": "EMS",
+   "scan": "EMSGP01_00",
+   "crop": "t2_03",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 12.5,
+   "n_admissible_in_cell": 1350,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_03\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_03\\gray.tif"
+  },
+  {
+   "x": 650,
+   "y": 900,
+   "z": 1050,
+   "crop_id": "EMSGP01_00_t2_04",
+   "specimen": "EMS",
+   "scan": "EMSGP01_00",
+   "crop": "t2_04",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.7017,
+   "theta_deg": 80.9,
+   "n_admissible_in_cell": 1740,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_04\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_00_t2_04\\gray.tif"
+  },
+  {
+   "x": 650,
+   "y": 375,
+   "z": 575,
+   "crop_id": "EMSGP01_01_t2_05",
+   "specimen": "EMS",
+   "scan": "EMSGP01_01",
+   "crop": "t2_05",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.998,
+   "theta_deg": -77.7,
+   "n_admissible_in_cell": 1037,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_05\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_05\\gray.tif"
+  },
+  {
+   "x": 925,
+   "y": 525,
+   "z": 600,
+   "crop_id": "EMSGP01_01_t2_06",
+   "specimen": "EMS",
+   "scan": "EMSGP01_01",
+   "crop": "t2_06",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.5908,
+   "theta_deg": -12.6,
+   "n_admissible_in_cell": 1025,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_06\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_06\\gray.tif"
+  },
+  {
+   "x": 450,
+   "y": 500,
+   "z": 1200,
+   "crop_id": "EMSGP01_01_t2_07",
+   "specimen": "EMS",
+   "scan": "EMSGP01_01",
+   "crop": "t2_07",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -147.3,
+   "n_admissible_in_cell": 552,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_07\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_07\\gray.tif"
+  },
+  {
+   "x": 925,
+   "y": 475,
+   "z": 900,
+   "crop_id": "EMSGP01_01_t2_08",
+   "specimen": "EMS",
+   "scan": "EMSGP01_01",
+   "crop": "t2_08",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.5005,
+   "theta_deg": -20.7,
+   "n_admissible_in_cell": 991,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_08\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EMSGP01_01_t2_08\\gray.tif"
+  },
+  {
+   "x": 650,
+   "y": 775,
+   "z": 450,
+   "crop_id": "EORGP01_00_t2_01",
+   "specimen": "EOR",
+   "scan": "EORGP01_00",
+   "crop": "t2_01",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 73.7,
+   "n_admissible_in_cell": 1919,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_01\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_01\\gray.tif"
+  },
+  {
+   "x": 425,
+   "y": 900,
+   "z": 275,
+   "crop_id": "EORGP01_00_t2_02",
+   "specimen": "EOR",
+   "scan": "EORGP01_00",
+   "crop": "t2_02",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.4771,
+   "theta_deg": 120.0,
+   "n_admissible_in_cell": 1714,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_02\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_02\\gray.tif"
+  },
+  {
+   "x": 525,
+   "y": 700,
+   "z": 1275,
+   "crop_id": "EORGP01_00_t2_03",
+   "specimen": "EOR",
+   "scan": "EORGP01_00",
+   "crop": "t2_03",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 126.2,
+   "n_admissible_in_cell": 678,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_03\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_03\\gray.tif"
+  },
+  {
+   "x": 400,
+   "y": 900,
+   "z": 1150,
+   "crop_id": "EORGP01_00_t2_04",
+   "specimen": "EOR",
+   "scan": "EORGP01_00",
+   "crop": "t2_04",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.4053,
+   "theta_deg": 123.5,
+   "n_admissible_in_cell": 1118,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_04\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_00_t2_04\\gray.tif"
+  },
+  {
+   "x": 625,
+   "y": 500,
+   "z": 325,
+   "crop_id": "EORGP01_01_t2_05",
+   "specimen": "EOR",
+   "scan": "EORGP01_01",
+   "crop": "t2_05",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -74.9,
+   "n_admissible_in_cell": 1429,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_05\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_05\\gray.tif"
+  },
+  {
+   "x": 400,
+   "y": 350,
+   "z": 375,
+   "crop_id": "EORGP01_01_t2_06",
+   "specimen": "EOR",
+   "scan": "EORGP01_01",
+   "crop": "t2_06",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.6264,
+   "theta_deg": -128.5,
+   "n_admissible_in_cell": 1777,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_06\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_06\\gray.tif"
+  },
+  {
+   "x": 600,
+   "y": 375,
+   "z": 900,
+   "crop_id": "EORGP01_01_t2_07",
+   "specimen": "EOR",
+   "scan": "EORGP01_01",
+   "crop": "t2_07",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -89.6,
+   "n_admissible_in_cell": 529,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_07\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_07\\gray.tif"
+  },
+  {
+   "x": 600,
+   "y": 250,
+   "z": 1125,
+   "crop_id": "EORGP01_01_t2_08",
+   "specimen": "EOR",
+   "scan": "EORGP01_01",
+   "crop": "t2_08",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.4569,
+   "theta_deg": -89.7,
+   "n_admissible_in_cell": 845,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_08\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EORGP01_01_t2_08\\gray.tif"
+  },
+  {
+   "x": 750,
+   "y": 625,
+   "z": 625,
+   "crop_id": "EOSGP01_00_t2_01",
+   "specimen": "EOS",
+   "scan": "EOSGP01_00",
+   "crop": "t2_01",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 8.9,
+   "n_admissible_in_cell": 977,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_01\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_01\\gray.tif"
+  },
+  {
+   "x": 350,
+   "y": 825,
+   "z": 375,
+   "crop_id": "EOSGP01_00_t2_02",
+   "specimen": "EOS",
+   "scan": "EOSGP01_00",
+   "crop": "t2_02",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.5393,
+   "theta_deg": 138.0,
+   "n_admissible_in_cell": 1515,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_02\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_02\\gray.tif"
+  },
+  {
+   "x": 600,
+   "y": 800,
+   "z": 950,
+   "crop_id": "EOSGP01_00_t2_03",
+   "specimen": "EOS",
+   "scan": "EOSGP01_00",
+   "crop": "t2_03",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": 89.5,
+   "n_admissible_in_cell": 1325,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_03\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_03\\gray.tif"
+  },
+  {
+   "x": 825,
+   "y": 875,
+   "z": 775,
+   "crop_id": "EOSGP01_00_t2_04",
+   "specimen": "EOS",
+   "scan": "EOSGP01_00",
+   "crop": "t2_04",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 0,
+   "specimen_fraction_sub4": 0.4609,
+   "theta_deg": 50.4,
+   "n_admissible_in_cell": 955,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_04\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_00_t2_04\\gray.tif"
+  },
+  {
+   "x": 675,
+   "y": 425,
+   "z": 550,
+   "crop_id": "EOSGP01_01_t2_05",
+   "specimen": "EOS",
+   "scan": "EOSGP01_01",
+   "crop": "t2_05",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -66.5,
+   "n_admissible_in_cell": 591,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_05\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_05\\gray.tif"
+  },
+  {
+   "x": 650,
+   "y": 250,
+   "z": 125,
+   "crop_id": "EOSGP01_01_t2_06",
+   "specimen": "EOS",
+   "scan": "EOSGP01_01",
+   "crop": "t2_06",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 0,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.4317,
+   "theta_deg": -81.6,
+   "n_admissible_in_cell": 1213,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_06\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_06\\gray.tif"
+  },
+  {
+   "x": 550,
+   "y": 425,
+   "z": 1075,
+   "crop_id": "EOSGP01_01_t2_07",
+   "specimen": "EOS",
+   "scan": "EOSGP01_01",
+   "crop": "t2_07",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "interior",
+   "touches_specimen_boundary": false,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 1.0,
+   "theta_deg": -105.3,
+   "n_admissible_in_cell": 1461,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_07\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_07\\gray.tif"
+  },
+  {
+   "x": 900,
+   "y": 600,
+   "z": 1075,
+   "crop_id": "EOSGP01_01_t2_08",
+   "specimen": "EOS",
+   "scan": "EOSGP01_01",
+   "crop": "t2_08",
+   "size": 200,
+   "role": "test2_external",
+   "test_class": "boundary",
+   "touches_specimen_boundary": true,
+   "z_tier": 1,
+   "angular_half": 1,
+   "specimen_fraction_sub4": 0.7318,
+   "theta_deg": -0.3,
+   "n_admissible_in_cell": 967,
+   "gt_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_08\\labels.tif",
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_test2\\EOSGP01_01_t2_08\\gray.tif"
+  }
+ ],
+ "skipped_cells": [
+  {
+   "specimen": "EFR",
+   "scan": "EFRGP01_00",
+   "z_tier": 1,
+   "angular_half": 0,
+   "test_class": "interior",
+   "reason": "no admissible candidate"
+  }
+ ]
+}
