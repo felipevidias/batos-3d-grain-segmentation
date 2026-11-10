@@ -98,7 +98,7 @@ Crop-macro F1@0.50 (mean ± SD, min) and pooled F1@0.50:
   removes all of them (1.000 for every run). The result is insensitive to the two documented knobs, so the default
   config is not a cherry-picked operating point.
 - flow3D_smooth makes no difference to boundaries (mIoU 0.888 in every run). Upscaling with the BA-TOS scale estimate
-  makes boundaries worse (0.861, about 1.6 voxels coarser after upsampling back) and is 5.7× slower. Cellpose's own
+  makes boundaries worse (mIoU 0.861; cause not measured) and is 5.7× slower. Cellpose's own
   scale (no rescale) is the right choice here. Test was not run with these settings: nothing was selected.
 - Tables: `sensitivity/tables.md`; rows `cellpose_cpsam_v2__<override>/<crop>` in `all_runs.csv`.
 
