@@ -1,0 +1,14 @@
+# Phase 2 Cellpose baseline: one fixed config per model, no per-crop tuning.
+# Run with the cellpose env: C:\BA_TOS_DATA\envs\cellpose\Scripts\python.exe -I scripts\run_cellpose.py --config <this>
+# `eval` holds only what 3D grayscale input requires; every other CellposeModel.eval argument stays at the
+# cellpose default (the full resolved signature is recorded in each run.json).
+method: cellpose
+model: cpdino        # exact name from cellpose.models.MODEL_NAMES (cellpose 4.2.1.1); needs dinov3 (environments/cellpose.txt)
+gpu: true
+eval:
+  do_3D: true              # 3D flows from the three orthogonal 2D passes
+  z_axis: 0                # crops are stored zyx
+  channel_axis: null       # single-channel grayscale
+  diameter: null           # default: no rescaling
+  flow3D_smooth: 0         # default
+runs_root: C:\BA_TOS_DATA\runs\cellpose

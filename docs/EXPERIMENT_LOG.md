@@ -757,3 +757,52 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   (e11 empty markers). `ws_mask_closing_iterations` 0 failed on all 12 crops. This is a sweep artifact: scipy
   `iterations=0` means "until convergence" and empties the mask. The point is invalid and was not re-run.
 - Next: Phase 2 (Cellpose baselines).
+
+## 2026-11-09 — Phase 2 (Cellpose baselines): environment, runner, cpsam_v2 dev result
+
+- Env `C:\BA_TOS_DATA\envs\cellpose` (Python 3.12.10 venv). torch 2.11.0+cu128 (sm_120 present).
+  `torch.cuda.is_available()` True on the RTX 5060 (8 GB, driver 617.14, CUDA UMD 13.4). Conv3d on the GPU matches
+  the CPU result (max |Δ| 9e-4, TF32). cellpose 4.2.1.1. `cellpose.models.MODEL_NAMES` = cpsam_v2 (default), cpdino,
+  cpdino-vitb, cpsam. dinov3 was installed with `--no-deps` from GitHub, pinned at
+  6876159a11b4df116f30f667f8c9888617df0751, after the user's approval. cpdino and cpdino-vitb weights downloaded and
+  load (CPU test). Frozen in `environments/cellpose.txt`.
+- `scripts/run_cellpose.py` + `configs/cellpose_<model>.yaml`: one fixed config per model. do_3D, z_axis 0,
+  diameter None (cellpose 4 has no automatic diameter estimate; None = no rescaling), flow3D_smooth 0, all other
+  arguments at the cellpose defaults (the resolved signature is in run.json). Outputs go to
+  `C:\BA_TOS_DATA\runs\cellpose\<tag>\<crop>\{labels.tif, run.json}`. GT is never read.
+  `scripts/evaluate_cellpose.py` (batos env): evaluate_v2 no-marker mode (fraction 0.50), IoU .25/.50/.75, size
+  filter none/500. v3 rows are read from the frozen v3 evaluations (same mode). Writes `results/cellpose/` and
+  all_runs rows `cellpose_<tag>/<crop>`.
+- cpsam_v2 crop04: 630 labels (GT 649), predicted grains about 14 % larger than GT (median 13,026 vs 11,385 voxels;
+  foreground fraction 0.757 vs 0.675, i.e. boundary over-extension). F1 1.000 at .25/.50/.75, mIoU 0.884.
+- cpsam_v2, 12 dev crops (no filter): crop-macro F1@0.50 0.998 ± 0.004 (v3 0.979 ± 0.011). Pooled TP 2808 / FP 13 /
+  FN 0 (v3 2711 / 25 / 97). Filter 500: 1.000. mIoU@0.50 0.888 (v3 0.916). 30 s/crop on the GPU, VRAM 1.8 GB
+  reserved (v3: 397 s on the CPU).
+- Queued sequentially on the GPU: cpsam_v2 test (52), then cpsam (v1), then cpdino, then cpdino-vitb (crop04, dev,
+  test each).
+
+## 2026-11-10 — Phase 2: cpsam_v2 test result, leakage, protocol, shape/contacts, robustness (REPORT)
+
+- cpsam_v2, 52 test crops, 0 failures. No-marker crop-macro F1@0.50 0.998 ± 0.004 (min 0.980) vs v3 0.896 ± 0.168.
+  Pooled 8613 / 32 / 1 vs 7437 / 354 / 1177. EO: 0.996 / 0.998 vs 0.735 / 0.727. An independent IoU re-check on
+  EORGP01_01_test05 gives 162/162 at IoU ≥ 0.75. cpsam (v1) 64/64: test 0.999 ± 0.002, dev 1.000.
+- Leakage: the Cellpose-SAM preprint lists only cell/nuclei datasets (the cyto2 part includes 98 non-microscopy photos,
+  "fruits, rocks, jellyfish"). No micro-CT, granular data or Zenodo 8014905. No dataset list was found for the June 2026
+  models (cpsam_v2, cpdino*). The bioRxiv full text was rate-limited (429), so the list must be confirmed from the
+  preprint.
+- Protocol (`scripts/protocol_check_cellpose.py`, `scripts/shape_contacts_cellpose_v3.py`): strict / nothing-ignored
+  mode reverses the ranking (test pooled 0.586 vs 0.776). The extra FPs are segmented face-truncated (excluded)
+  grains: counting all GT labels gives cpsam_v2 0.979 vs v3 0.604. crop04: 358 cpsam_v2 predictions ignored
+  (377 excluded GT).
+- Shape (paired, test): cpsam_v2 has a systematic ~1-voxel dilation (volume +9.8 %, d_eq +0.96, MSD 0.64,
+  HD95 1.08). Sphericity and elongation are nearly unbiased. v3 has a smaller median volume error on EF but heavy
+  tails (HD95 6.5, sphericity −0.11). Dilation correction NOT applied (post-hoc).
+- Contacts (6-adj, valid pairs): cpsam_v2 recall 0.998, v3 0.801 (EO ≈ 0.45). The authors' ContactPoint lists
+  (all 6 specimens) are a strict subset of GT 6-adjacency (recall 1.000, precision 0.62–0.67). Label ids are verified
+  consistent (all contact points inside the crops).
+- Robustness (`scripts/robustness_cellpose_v3.py`; crop04 + EORGP01_00_test04; frozen methods): v3 0.980 → 0.912 /
+  0.127 / 0.000 at 2 / 5 / 10 % noise (EO 0.985 → 0.941 / 0 / 0). Native noise ≈ 4.5 % / 1.9 % of contrast.
+  Mechanism: ToS marker collapse (396 → 5). 0.5× downsampling: v3 0.662 / 0.976. cpsam_v2 ≥ 0.990 in every condition.
+- `results/cellpose/REPORT.md` written, including an "implications" section: the accuracy thesis is not tenable;
+  the reframings are a benchmark/protocol paper or a hybrid, plus open checks. cpdino / cpdino-vitb still running
+  on the GPU; the flow3D_smooth/diameter sensitivity is pending.
