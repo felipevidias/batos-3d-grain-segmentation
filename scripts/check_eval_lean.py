@@ -7,8 +7,8 @@
 2. An all-zero prediction (scored-as-empty failure case) on one crop.
 3. EFRGP01_00_crop02_x2_canon (400^3): eval_lean rows vs the stored rows written by the frozen evaluator (exact on
    every metric column, from the CSV), and the process peak working set of the lean evaluation.
---x2-only runs part 3 alone in its own process (clean peak). Writes C:\BA_TOS_DATA\runs\v3c_dev\eval_lean_check[_x2].json;
-exits 1 on any difference.
+--x2-only runs part 3 alone in its own process (clean peak).
+Writes C:\\BA_TOS_DATA\\runs\\v3c_dev\\eval_lean_check[_x2].json; exits 1 on any difference.
 """
 
 from __future__ import annotations
