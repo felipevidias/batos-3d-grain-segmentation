@@ -818,3 +818,13 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   Test mIoU@0.50: cpdino 0.928 > cpsam 0.912 > cpdino-vitb 0.910 > v3 0.902 > cpsam_v2 0.899.
 - Conclusion: the Cellpose result is a property of the model family. REPORT.md §3b added, §8 runtime and §9 updated.
 - Still open: flow3D_smooth / diameter sensitivity (dev); shape/contacts with cpdino if the hybrid route (B) is chosen.
+
+## 2026-11-10 — Phase 2 step 5: cpsam_v2 sensitivity on dev (flow3D_smooth 1/2, diameter 2r_granulo)
+
+- `run_cellpose.py --config configs/cellpose_cpsam_v2.yaml --set dev --override flow3D_smooth=1` (and `=2`,
+  `diameter=2r_granulo`); 12/12 crops each, no failures. 2r_granulo = 20 on all dev crops (from v3 run records).
+- `evaluate_cellpose.py --tags cpsam_v2 cpsam_v2__flow3D_smooth-1 cpsam_v2__flow3D_smooth-2 cpsam_v2__diameter-2r_granulo
+  --split dev --out results/cellpose/sensitivity`. Macro F1@0.50: 0.998 / 0.998 / 0.999 / 0.997; pooled FP 13 / 10 / 7
+  / 19, FN 0 in all; mIoU 0.888 / 0.888 / 0.888 / 0.861; s/crop 30 / 30 / 31 / 171. Filter 500: 1.000 for all.
+- Conclusion: flat; the default config stands. No setting selected, test not rerun. REPORT §3c.
+- all_runs.csv checked with pandas: 2136 previous rows kept, 72 new sensitivity rows.

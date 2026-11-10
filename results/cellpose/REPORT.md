@@ -85,6 +85,23 @@ Crop-macro F1@0.50 (mean ± SD, min) and pooled F1@0.50:
   for cpsam_v2 only, so they describe the *weakest-boundary* Cellpose model.
 - The conclusion is about the model family, not about one checkpoint.
 
+## 3c. Sensitivity of cpsam_v2 (dev 12 only, one fixed change at a time, no filter)
+
+| run | macro F1@0.50 ± SD (min) | pooled TP/FP/FN | F1@0.75 macro | mIoU@0.50 | s/crop |
+|---|---|---|---|---|---|
+| baseline (flow3D_smooth 0, diameter None) | 0.998 ± 0.004 (0.987) | 2808 / 13 / 0 | 0.998 | 0.888 | 30 |
+| flow3D_smooth 1 | 0.998 ± 0.003 (0.989) | 2808 / 10 / 0 | 0.998 | 0.888 | 30 |
+| flow3D_smooth 2 | 0.999 ± 0.002 (0.994) | 2808 / 7 / 0 | 0.999 | 0.888 | 31 |
+| diameter = 2·r_granulo (GT-free, = 20 on every dev crop → rescale 1.5) | 0.997 ± 0.004 (0.987) | 2808 / 19 / 0 | 0.997 | 0.861 | 171 |
+
+- Every setting keeps recall at 1.000. Only the number of small spurious FPs (7–19) changes, and the size filter 500
+  removes all of them (1.000 for every run). The result is insensitive to the two documented knobs, so the default
+  config is not a cherry-picked operating point.
+- flow3D_smooth makes no difference to boundaries (mIoU 0.888 in every run). Upscaling with the BA-TOS scale estimate
+  makes boundaries worse (0.861, about 1.6 voxels coarser after upsampling back) and is 5.7× slower. Cellpose's own
+  scale (no rescale) is the right choice here. Test was not run with these settings: nothing was selected.
+- Tables: `sensitivity/tables.md`; rows `cellpose_cpsam_v2__<override>/<crop>` in `all_runs.csv`.
+
 ## 4. Protocol check — what the ignore rule does
 
 crop04: cpsam_v2 630 predictions, **358 ignored** by the no-marker rule, 272 evaluable, 0 FP, pred/GT 1.000. v3 396
@@ -246,4 +263,4 @@ is a property of the model family, not of one lucky checkpoint.
 - ~~Finish cpsam / cpdino / cpdino-vitb.~~ Done: all four agree (§3b).
 - If (B) is pursued, repeat §5 (shape/boundary) with cpdino, the Cellpose model with the best matched IoU, since any
   hybrid has to beat the strongest boundary baseline, not the default one.
-- Run the planned flow3D_smooth / diameter sensitivity (dev only).
+- ~~Run the planned flow3D_smooth / diameter sensitivity (dev only).~~ Done: flat (§3c).
