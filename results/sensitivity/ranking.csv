@@ -6,11 +6,16 @@ selector,selector_w_delta,flag,true_dual,0.12,0.5122595322595622,0.2598870056497
 selector,selector_w_area,flag,true_dual,0.18,0.4165934998014646,0.2598870056497175,"x0.5=0.09: -0.4166, x2=0.36: -0.0096",False,0.4523754716636103,0.0121212121212121,"x0.5=0.09: -0.4524, x2=0.36: +0.0097",False,True,True,True
 selector,selector_area_preferred_width,flag,true_dual,0.55,0.4165934998014646,0.107020763611501,"x0.5=0.275: +0.0017, x2=1.1: -0.4166",False,0.4523754716636103,0.0024242424242424,"x0.5=0.275: +0.0115, x2=1.1: -0.4524",False,True,True,True
 selector,selector_area_min,flag,true_dual,2,0.2887373411032423,0.2598870056497175,"-1=1: -0.2887, +1=3: -0.0408",False,0.3096568176929923,0.0121212121212121,"-1=1: -0.3097, +1=3: +0.0073",False,True,True,True
+markers,bg_dark_threshold_max,flag,background,135,0.2291111108735046,0.0,"x0.5=68: -0.2291, x2=255: +0.0000",False,0.2291111108735049,0.0,"x0.5=68: -0.2291, x2=255: +0.0000",False,True,True,True
+gate_watershed,eval_exclude_face_touching,eval,,True,0.2266095276597762,0.1418745832894691,flip=False: -0.2266,False,0.1963521919806875,0.0065123282514587,flip=False: -0.1964,False,True,True,True
 selector,selector_height_scale_percentile,literal,true_dual,95,0.2163822767294224,0.1771283849600624,"x0.5=47.5: -0.2164, max=100: -0.0162",False,0.178890808480966,0.0121212121212121,"x0.5=47.5: -0.1789, max=100: -0.0262",False,True,True,True
 selector,selector_K,flag,true_dual,3600,0.1273035298576786,0.4778179123830693,"x0.5=1800: -0.1273, x2=7200: +0.0321",False,0.1196245395536286,0.0121212121212121,"x0.5=1800: -0.1196, x2=7200: -0.0027",False,True,True,True
 selector,selector_K_min_fraction,literal,true_dual,0.5,0.1273035298576786,0.1913950456323336,"x0.5=0.25: -0.1273, x2 (all MIN)=1.0: +0.0020",False,0.1196245395536286,0.0121212121212121,"x0.5=0.25: -0.1196, x2 (all MIN)=1.0: +0.0063",False,True,True,True
 selector,selector_w_dark,flag,true_dual,0.18,0.1014378803108174,0.146204364908658,"x0.5=0.09: -0.0059, x2=0.36: -0.1014",False,0.1139183821354657,0.0008852570650324,"x0.5=0.09: -0.0020, x2=0.36: -0.1139",False,True,True,True
+gate_watershed,gate_median_limit,literal,route,3.0,0.0824553958591189,0.2477657935285054,"x0.5=1.5: -0.0825, x2=6.0: +0.0000",False,0.0,0.0,"x0.5=1.5: +0.0000, x2=6.0: +0.0000",False,True,True,True
+gate_watershed,gate_q75_limit,literal,route,4.0,0.0824553958591189,0.2477657935285054,"x0.5=2.0: -0.0825, x2=8.0: +0.0000",False,0.0,0.0,"x0.5=2.0: +0.0000, x2=8.0: +0.0000",False,True,True,True
 markers,bg_dark_percentile,flag,background,40.0,0.0584830378182631,0.2333215407540819,"x0.5=20.0: -0.0585, x2=80.0: FAIL",True,0.0032861342737192,0.0004253056884636,"x0.5=20.0: -0.0033, x2=80.0: FAIL",True,True,True,True
+markers,edt_nms_radius,flag,edt_otsu,6.0,0.0468990919626511,0.1121597329224448,"x0.5=3.0: -0.0469, x2=12.0: +0.0161",False,0.0,0.0,"x0.5=3.0: +0.0000, x2=12.0: +0.0000",False,True,True,True
 selector,selector_delta_norm,flag,true_dual,20.0,0.0385392658867553,0.4601129943502824,"x0.5=10.0: +0.0385, x2=40.0: -0.0084",False,0.0095147047863834,0.0121212121212121,"x0.5=10.0: +0.0014, x2=40.0: +0.0095",False,True,True,True
 selector,selector_area_max,flag,true_dual,2200,0.0375063766570572,0.1318655716698701,"x0.5=1100: -0.0375, x2=4400: +0.0147",False,0.0317024470540359,0.0007575757575758,"x0.5=1100: -0.0317, x2=4400: +0.0036",False,True,True,True
 selector,selector_dark_percentile_max,flag,true_dual,78.0,0.0369877524052281,0.5029995922884267,"x0.5=39.0: +0.0370, x2=100.0: -0.0006",False,0.008355398458429,0.0030303030303029,"x0.5=39.0: -0.0084, x2=100.0: +0.0042",False,True,True,True
@@ -19,9 +24,23 @@ selector,selector_delta_parent_min,flag,true_dual,0,0.0312155937957656,0.4197246
 selector,selector_w_height,flag,true_dual,0.22,0.0287700809952711,0.0587035736970548,"x0.5=0.11: -0.0288, x2=0.44: -0.0024",False,0.0277444152360292,0.0003787878787877,"x0.5=0.11: -0.0277, x2=0.44: -0.0005",False,True,True,True
 openrec_flatten,flatten_out_percentile,literal,flatten,0.5,0.0259669928375402,0.524285656220786,"x0.5=0.25: -0.0260, x2=1.0: +0.0227",False,0.0237655311288307,0.0112250913807334,"x0.5=0.25: -0.0238, x2=1.0: -0.0192",False,True,True,True
 openrec_flatten,flatten_sigma_z,flag,flatten,0.0,0.0161530756288993,0.23300528521961,+1=1.0: -0.0162,False,0.0137780209302047,0.0147605083088954,+1=1.0: +0.0138,False,True,True,True
+markers,e11_nms_radius,flag,markers_tos,6.0,0.0108486160512535,0.0185076953048899,"x0.5=3.0: -0.0108, x2=12.0: +0.0046",False,0.0061245897805418,0.0002244668911334,"x0.5=3.0: -0.0061, x2=12.0: +0.0021",False,True,True,True
 selector,selector_area_factor,flag,true_dual,22.0,0.0053697765562172,0.0644373186746067,"x0.5=11.0: +0.0054, x2=44.0: +0.0000",False,2.390771621540999e-05,0.0002868925945849,"x0.5=11.0: -0.0000, x2=44.0: +0.0000",False,True,False,False
 selector,selector_min_score,flag,true_dual,0.35,0.0053258246178599,0.0,"x0.5=0.175: +0.0000, x2=0.7: -0.0053",False,0.0001715899791451,0.0,"x0.5=0.175: +0.0000, x2=0.7: +0.0002",False,True,False,False
 openrec_flatten,openrec_norm_percentile,literal,openrec,1,0.0043357397477603,0.1888934821551605,"x0.5=0.5: -0.0038, x2=2.0: +0.0043",False,0.0075390208533153,0.0121212121212121,"x0.5=0.5: -0.0075, x2=2.0: -0.0034",False,True,False,False
+markers,bg_dark_connectivity,flag,background,1,0.0040580867321422,0.0084584342211461,"+1=2: +0.0041, +2=3: FAIL",True,0.0012078047212056,0.0121212121212121,"+1=2: +0.0012, +2=3: FAIL",True,True,False,False
+gate_watershed,ws_distance_norm_percentile,literal,ws_tos,1.0,0.003662242383293,0.0,"x0.5=0.5: +0.0037, x2=2.0: -0.0010",False,0.0006319393529898,0.0,"x0.5=0.5: +0.0006, x2=2.0: -0.0004",False,True,False,False
+markers,bg_otsu_offset,flag,background,-10,0.0028402852739386,0.0,"x0.5=-5: +0.0014, x2=-20: -0.0028",False,0.0028402852739386,0.0,"x0.5=-5: +0.0014, x2=-20: -0.0028",False,True,False,False
+gate_watershed,ws_mask_closing_iterations,literal,ws_tos,1,0.0025867257079803,0.0112994350282487,"-1 (no closing)=0: FAIL, +1=2: -0.0026",True,0.0067535677881317,0.0121212121212121,"-1 (no closing)=0: FAIL, +1=2: -0.0068",True,True,False,False
+gate_watershed,ws_mask_otsu_offset,literal,ws_tos,0.0,0.0014848681270597,0.0112994350282487,"-0.04=-0.04: -0.0002, +0.04=0.04: -0.0015",False,0.0035135882260773,0.0121212121212121,"-0.04=-0.04: -0.0029, +0.04=0.04: -0.0035",False,True,False,False
+gate_watershed,ws_connectivity,literal,ws_tos,1,0.0010901719745186,0.0112994350282485,"+1=2: -0.0004, +2=3: -0.0011",False,0.0034749112820143,0.0,"+1=2: -0.0035, +2=3: -0.0035",False,True,False,False
+gate_watershed,ws_image_norm_percentile,literal,ws_tos,1.0,0.0003150598613737,0.0,"x0.5=0.5: +0.0002, x2=2.0: +0.0003",False,0.0010819492243625,0.0,"x0.5=0.5: -0.0011, x2=2.0: +0.0003",False,True,False,False
+markers,lm_connectivity,flag,markers_legacy,1,0.0003097893432466,0.0,"+1=2: +0.0003, +2=3: +0.0003",False,0.0003097893432465,0.0,"+1=2: +0.0003, +2=3: +0.0003",False,True,False,False
+markers,lm_center_radius,flag,markers_legacy,2,0.0003097893432466,0.0,"-1=1: +0.0000, +1=3: +0.0003",False,0.0003097893432465,0.0,"-1=1: +0.0000, +1=3: +0.0003",False,True,False,False
+markers,lm_ring_inner,flag,markers_legacy,4,0.0003097893432466,0.0,"x0.5=2: +0.0000, x2=8: +0.0003",False,0.0003097893432465,0.0,"x0.5=2: +0.0000, x2=8: +0.0003",False,True,False,False
+markers,lm_center_dark_max,flag,markers_legacy,205.0,0.0003097893432466,0.0,"x0.5=102.5: +0.0003, x2=255.0: +0.0000",False,0.0003097893432465,0.0,"x0.5=102.5: +0.0003, x2=255.0: +0.0000",False,True,False,False
+markers,lm_nms_min_dist,flag,markers_legacy,7.0,0.0003097893432466,0.0,"x0.5=3.5: +0.0000, x2=14.0: +0.0003",False,0.0003097893432465,0.0,"x0.5=3.5: +0.0000, x2=14.0: +0.0003",False,True,False,False
+markers,lm_max_markers,flag,markers_legacy,420,0.0003097893432466,0.0,"x0.5=210: +0.0003, x2=840: +0.0000",False,0.0003097893432465,0.0,"x0.5=210: +0.0003, x2=840: +0.0000",False,True,False,False
 selector,selector_w_support,flag,true_dual,0.3,0.0,0.0,x2=0.6: +0.0000,False,0.0,0.0,x2=0.6: +0.0000,False,True,False,False
 markers,legacy_K,flag,tos_seed,900,0.0,0.0,"x0.5=450: +0.0000, x2=1800: +0.0000",False,0.0,0.0,"x0.5=450: +0.0000, x2=1800: +0.0000",False,True,False,False
 markers,legacy_min_score,flag,tos_seed,0.35,0.0,0.0,"x0.5=0.175: +0.0000, x2=0.7: +0.0000",False,0.0,0.0,"x0.5=0.175: +0.0000, x2=0.7: +0.0000",False,True,False,False
@@ -51,5 +70,30 @@ markers,legacy_component_max,flag,tos_seed,1500,0.0,0.0,"x0.5=750: +0.0000, x2=3
 markers,legacy_cleanup_open_radius,flag,tos_seed,0,0.0,0.0,+1=1: +0.0000,False,0.0,0.0,+1=1: +0.0000,False,True,False,False
 markers,legacy_cleanup_close_radius,flag,tos_seed,0,0.0,0.0,+1=1: +0.0000,False,0.0,0.0,+1=1: +0.0000,False,True,False,False
 markers,legacy_support_height_ratio,literal,tos_seed,0.1,0.0,0.0,"x0.5=0.05: +0.0000, x2=0.2: +0.0000",False,0.0,0.0,"x0.5=0.05: +0.0000, x2=0.2: +0.0000",False,True,False,False
-markers,bg_otsu_offset,flag,background,-10,,,"x0.5=-5: FAIL, x2=-20: FAIL",True,,,"x0.5=-5: FAIL, x2=-20: FAIL",True,True,False,False
-gate_watershed,gate_median_limit,literal,route,3.0,,,"x0.5=1.5: n/a, x2=6.0: n/a",False,,,"x0.5=1.5: n/a, x2=6.0: n/a",False,False,False,False
+markers,bg_seed_area_min,flag,background,1,0.0,0.0,"+1=2: +0.0000, +2=3: +0.0000",False,0.0,0.0,"+1=2: +0.0000, +2=3: +0.0000",False,True,False,False
+markers,bg_seed_area_max,flag,background,3000,0.0,0.0,"x0.5=1500: +0.0000, x2=6000: +0.0000",False,0.0,0.0,"x0.5=1500: +0.0000, x2=6000: +0.0000",False,True,False,False
+markers,bg_max_external_overlap,flag,background,0.1,0.0,0.0,"x0.5=0.05: +0.0000, x2=0.2: +0.0000",False,0.0,0.0,"x0.5=0.05: +0.0000, x2=0.2: +0.0000",False,True,False,False
+markers,bg_min_internal_overlap,flag,background,0.0,0.0,0.0,"+0.02=0.02: +0.0000, +0.10=0.1: +0.0000",False,0.0,0.0,"+0.02=0.02: +0.0000, +0.10=0.1: +0.0000",False,True,False,False
+markers,bg_internal_search_radius,flag,background,6,0.0,0.0,"x0.5=3: +0.0000, x2=12: +0.0000",False,0.0,0.0,"x0.5=3: +0.0000, x2=12: +0.0000",False,True,False,False
+markers,bg_center_radius,flag,background,2,0.0,0.0,"-1=1: +0.0000, +1=3: +0.0000",False,0.0,0.0,"-1=1: +0.0000, +1=3: +0.0000",False,True,False,False
+markers,bg_ring_inner,flag,background,4,0.0,0.0,"x0.5=2: +0.0000, x2=8: +0.0000",False,0.0,0.0,"x0.5=2: +0.0000, x2=8: +0.0000",False,True,False,False
+markers,bg_ring_outer,flag,background,10,0.0,0.0,"x0.5=5: +0.0000, x2=20: +0.0000",False,0.0,0.0,"x0.5=5: +0.0000, x2=20: +0.0000",False,True,False,False
+markers,bg_center_dark_max,flag,background,210.0,0.0,0.0,"x0.5=105.0: +0.0000, x2=255.0: +0.0000",False,0.0,0.0,"x0.5=105.0: +0.0000, x2=255.0: +0.0000",False,True,False,False
+markers,bg_min_ring_contrast,flag,background,-5.0,0.0,0.0,"x0.5=-2.5: +0.0000, x2=-10.0: +0.0000",False,0.0,0.0,"x0.5=-2.5: +0.0000, x2=-10.0: +0.0000",False,True,False,False
+markers,bg_max_ring_external_coverage,flag,background,0.7,0.0,0.0,"x0.5=0.35: +0.0000, x2=1.0: +0.0000",False,0.0,0.0,"x0.5=0.35: +0.0000, x2=1.0: +0.0000",False,True,False,False
+markers,bg_nms_min_dist,flag,background,5.0,0.0,0.0,"x0.5=2.5: +0.0000, x2=10.0: +0.0000",False,0.0,0.0,"x0.5=2.5: +0.0000, x2=10.0: +0.0000",False,True,False,False
+markers,bg_seed_connectivity,literal,background,1,0.0,0.0,+2 (26-conn)=3: +0.0000,False,0.0,0.0,+2 (26-conn)=3: +0.0000,False,True,False,False
+markers,lm_area_min,flag,markers_legacy,3,0.0,0.0,"-1=2: +0.0000, +1=4: +0.0000",False,0.0,0.0,"-1=2: +0.0000, +1=4: +0.0000",False,True,False,False
+markers,lm_area_max,flag,markers_legacy,900,0.0,0.0,"x0.5=450: +0.0000, x2=1800: +0.0000",False,0.0,0.0,"x0.5=450: +0.0000, x2=1800: +0.0000",False,True,False,False
+markers,lm_max_dim,flag,markers_legacy,30,0.0,0.0,"x0.5=15: +0.0000, x2=60: +0.0000",False,0.0,0.0,"x0.5=15: +0.0000, x2=60: +0.0000",False,True,False,False
+markers,lm_max_elongation,flag,markers_legacy,8.0,0.0,0.0,"x0.5=4.0: +0.0000, x2=16.0: +0.0000",False,0.0,0.0,"x0.5=4.0: +0.0000, x2=16.0: +0.0000",False,True,False,False
+markers,lm_min_fill,flag,markers_legacy,0.005,0.0,0.0,"x0.5=0.0025: +0.0000, x2=0.01: +0.0000",False,0.0,0.0,"x0.5=0.0025: +0.0000, x2=0.01: +0.0000",False,True,False,False
+markers,lm_ring_outer,flag,markers_legacy,10,0.0,0.0,"x0.5=5: +0.0000, x2=20: +0.0000",False,0.0,0.0,"x0.5=5: +0.0000, x2=20: +0.0000",False,True,False,False
+markers,lm_min_ring_contrast,flag,markers_legacy,-2.0,0.0,0.0,"x0.5=-1.0: +0.0000, x2=-4.0: +0.0000",False,0.0,0.0,"x0.5=-1.0: +0.0000, x2=-4.0: +0.0000",False,True,False,False
+markers,lm_score_dark_weight,literal,markers_legacy,0.02,0.0,0.0,"x0.5=0.01: +0.0000, x2=0.04: +0.0000",False,0.0,0.0,"x0.5=0.01: +0.0000, x2=0.04: +0.0000",False,True,False,False
+markers,e11_edt_priority_weight,flag,markers_tos,0.2,0.0,0.0,"x0.5=0.1: +0.0000, x2=0.4: +0.0000",False,0.0,0.0,"x0.5=0.1: +0.0000, x2=0.4: +0.0000",False,True,False,False
+markers,e11_min_priority_bonus,flag,markers_tos,0.05,0.0,0.0,"x0.5=0.025: +0.0000, x2=0.1: +0.0000",False,0.0,0.0,"x0.5=0.025: +0.0000, x2=0.1: +0.0000",False,True,False,False
+markers,e11_polarity,flag,markers_tos,min,0.0,0.0,dual=dual: +0.0000,False,0.0,0.0,dual=dual: +0.0000,False,True,False,False
+markers,edt_mask_min_component,literal,edt_otsu,500,0.0,0.0,"x0.5=250: +0.0000, x2=1000: +0.0000",False,0.0,0.0,"x0.5=250: +0.0000, x2=1000: +0.0000",False,True,False,False
+gate_watershed,ws_mask_min_component,literal,ws_tos,500,0.0,0.0,"x0.5=250: +0.0000, x2=1000: +0.0000",False,0.0,0.0,"x0.5=250: +0.0000, x2=1000: +0.0000",False,True,False,False
+gate_watershed,eval_min_gt_voxels,eval,,1000,0.0,0.0,"x0.5=500: +0.0000, x2=2000: +0.0000",False,0.0,0.0,"x0.5=500: +0.0000, x2=2000: +0.0000",False,True,False,False

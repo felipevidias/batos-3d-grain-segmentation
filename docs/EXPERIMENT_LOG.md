@@ -744,3 +744,16 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - Cause: markers per grain 0.42 → 2.62 at f = 2.0, giving over-segmentation into sub-filter fragments. FN = 0
     everywhere, and with the own filter F1 is 0.996.
 - Steps 3–4 not run: no freeze, no tag, test set 2 not defined or cut (still unseen). Decision needed from the user.
+
+## 2026-11-09 — Decision: v3 is the journal method; Phase 5a sweep complete and ranked
+
+- Decision (user): `batos-paper-v3-scalefree` is the journal's method. The EO capacity limit goes in the limitations
+  section with the seed-density analysis (`results/test_v3/REPORT.md`). v3.2 (per-grain merge/suppression) is deferred.
+  v3.1 stays unfrozen; test set 2 stays unseen.
+- Phase 5a: the user's sweep finished. Groups 3 (markers, 1497/1500 crop-jobs) and 4 (gate_watershed, 216/228) are
+  complete; every configured perturbation was attempted. `scripts/rank_sensitivity.py` re-run on the complete
+  CSV: 96/96 method parameters ranked, 25 influential. Summary: `results/sensitivity/FULL_RANKING.md`.
+- Failures: `bg_dark_percentile` 80 (both crop05) and `bg_dark_connectivity` 3 (01_crop05) are real breaks
+  (e11 empty markers). `ws_mask_closing_iterations` 0 failed on all 12 crops. This is a sweep artifact: scipy
+  `iterations=0` means "until convergence" and empties the mask. The point is invalid and was not re-run.
+- Next: Phase 2 (Cellpose baselines).
