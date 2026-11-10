@@ -1,9 +1,8 @@
 # Phase 2 — Cellpose baselines vs BA-TOS v3 (dev 12 + held-out test 52 crops)
 
-Status 2026-11-10. Complete for **cpsam_v2** (main comparison, all analyses) and **cpsam (v1)** (accuracy only:
-test crop-macro F1@0.50 0.999 ± 0.002, min 0.988; pooled 8613 / 17 / 1, F1 0.999; mIoU 0.912; dev 1.000 ± 0.001).
-The two Cellpose-SAM checkpoints agree. **cpdino and cpdino-vitb are still running** sequentially on the GPU; their
-rows will be appended to `tables.md` (same evaluator, same fixed config) and to this report when they finish. v3 = `batos-paper-v3-scalefree` (frozen, tag), BA-TOS_sel route; the gate never fires on
+Status 2026-11-10. Complete for **cpsam_v2** (main comparison, all analyses) and, for accuracy and runtime only, for
+the other three Cellpose models **cpsam (v1), cpdino (DINOv3 ViT-L) and cpdino-vitb (DINOv3 ViT-B)**, all 64 crops,
+no failures (§3b). All four Cellpose models agree to within 0.002 F1. v3 = `batos-paper-v3-scalefree` (frozen, tag), BA-TOS_sel route; the gate never fires on
 these crops, so sel = ToS. Nothing was tuned on GT. No size filter unless stated.
 
 Sources of record: `tables.md` (crop-macro and pooled, filter none/500, runtime), `protocol_check/tables.md`
@@ -68,6 +67,23 @@ Crop-macro F1@0.50 (mean ± SD, min) and pooled F1@0.50:
 - No cpsam_v2 crop is below 0.90 (v3: 10 of 52, all EO interior plus EFSGP01_01_test05 and EOSGP01_01_test08).
 - An independent re-implementation of the IoU on v3's worst crop (EORGP01_01_test05) confirms 162/162 valid GT
   matched by cpsam_v2 at IoU ≥ 0.75 (median 0.913). The prediction is not a copy of the GT (foreground 0.711 vs 0.661).
+
+## 3b. All four Cellpose models (accuracy, same fixed config, no filter)
+
+| model | dev macro F1@0.50 (min) | test macro F1@0.50 ± SD (min) | test pooled TP/FP/FN | test pooled F1@0.50 / @0.75 | test mIoU@0.50 | EO macro (EOR / EOS) |
+|---|---|---|---|---|---|---|
+| cpsam_v2 | 0.998 (0.987) | 0.998 ± 0.004 (0.980) | 8613 / 32 / 1 | 0.998 / 0.997 | 0.899 | 0.996 / 0.998 |
+| cpsam (v1) | 1.000 (0.998) | 0.999 ± 0.002 (0.988) | 8613 / 17 / 1 | 0.999 / 0.998 | 0.912 | 0.998 / 1.000 |
+| cpdino | 0.999 (0.994) | 0.999 ± 0.002 (0.988) | 8613 / 12 / 1 | 0.999 / 0.999 | **0.928** | 0.998 / 1.000 |
+| cpdino-vitb | 0.999 (0.995) | 0.998 ± 0.004 (0.977) | 8613 / 18 / 1 | 0.999 / 0.998 | 0.910 | 0.995 / 1.000 |
+| v3 | 0.979 (0.958) | 0.896 ± 0.168 (0.398) | 7437 / 354 / 1177 | 0.907 / 0.875 | 0.902 | 0.735 / 0.727 |
+
+- Detection is saturated for every model: all four miss the same single GT grain on test (FN 1) and differ only by
+  12–32 FPs over 8,614 grains. The models differ only in boundary overlap: cpdino has the highest matched IoU
+  (0.928 test, 0.912 dev), above v3 (0.902 / 0.916). cpsam_v2, the default, has the lowest (0.899 / 0.888).
+  This is consistent with the ~1-voxel dilation found for cpsam_v2 in §5. Shape/contact analyses (§5–6) were run
+  for cpsam_v2 only, so they describe the *weakest-boundary* Cellpose model.
+- The conclusion is about the model family, not about one checkpoint.
 
 ## 4. Protocol check — what the ignore rule does
 
@@ -176,6 +192,9 @@ No-marker mode, F1@0.50 (F1@0.75):
 | method | device | median s/crop [range] | peak VRAM | peak host RAM |
 |---|---|---|---|---|
 | cpsam_v2 | RTX 5060 (GPU) | 30 [29–46] | 1.8 GB reserved | 3.5 GB |
+| cpsam (v1) | RTX 5060 (GPU) | 31 [30–60] | 1.8 GB reserved | 3.5 GB |
+| cpdino (ViT-L) | RTX 5060 (GPU) | 58 [57–77] | 1.7 GB reserved | 3.3 GB |
+| cpdino-vitb | RTX 5060 (GPU) | 23 [22–28] | 1.2 GB reserved | 2.5 GB |
 | v3 | Ryzen 7 5700X (CPU) | 397 dev / 397 test | — | 3.4 GB |
 
 Cellpose time is `model.eval` only (model load excluded, not measured). v3 is the whole pipeline, CPU, not
@@ -192,7 +211,8 @@ BA-TOS: the "strict" mode favours v3 only because it counts segmented face-trunc
 those grains as GT gives cpsam_v2 0.979 vs v3 0.604. A journal paper whose thesis is "BA-TOS outperforms learned
 models on micro-CT grains" would be refuted by its own baseline. The robustness test widens the gap: v3 collapses at
 5 % added noise (≈ 2× the native noise variance), while cpsam_v2 stays at ≥ 0.990. The original Cellpose-SAM
-checkpoint (cpsam) gives the same picture (0.999), so this is not one lucky checkpoint.
+checkpoint (cpsam) and both CellposeDINO models (cpdino 0.999, cpdino-vitb 0.998) give the same picture, so this
+is a property of the model family, not of one lucky checkpoint.
 
 **What BA-TOS still has, honestly stated:**
 1. *No learning, no GPU, no external weights, fully inspectable.* Every marker traces to a Tree-of-Shapes node with
@@ -223,6 +243,7 @@ checkpoint (cpsam) gives the same picture (0.999), so this is not one lucky chec
 **Before any of this is written up:**
 - Confirm the Cellpose-SAM dataset list in the preprint's methods (and ask the authors about the June 2026 models).
 - Establish how the Pinzón GT was produced.
-- Finish cpsam / cpdino / cpdino-vitb. If all four Cellpose models agree, the conclusion is about the model family,
-  not one checkpoint.
+- ~~Finish cpsam / cpdino / cpdino-vitb.~~ Done: all four agree (§3b).
+- If (B) is pursued, repeat §5 (shape/boundary) with cpdino, the Cellpose model with the best matched IoU, since any
+  hybrid has to beat the strongest boundary baseline, not the default one.
 - Run the planned flow3D_smooth / diameter sensitivity (dev only).

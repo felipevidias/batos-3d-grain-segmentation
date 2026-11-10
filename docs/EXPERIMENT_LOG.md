@@ -806,3 +806,15 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
 - `results/cellpose/REPORT.md` written, including an "implications" section: the accuracy thesis is not tenable;
   the reframings are a benchmark/protocol paper or a hybrid, plus open checks. cpdino / cpdino-vitb still running
   on the GPU; the flow3D_smooth/diameter sensitivity is pending.
+
+## 2026-11-10 — Phase 2: cpdino and cpdino-vitb complete; all four Cellpose models evaluated
+
+- Ran `run_cellpose.py` with `configs/cellpose_cpdino.yaml` and `configs/cellpose_cpdino-vitb.yaml` on crop04, dev (12)
+  and test (52); 64/64 crops each, no FAILED.json. cpdino 58 s/crop (VRAM 1.65 GB reserved), cpdino-vitb 23 s/crop
+  (1.19 GB). No VRAM problem.
+- `evaluate_cellpose.py --tags cpsam_v2 cpsam cpdino cpdino-vitb` (no-marker, fraction 0.50). Test crop-macro F1@0.50:
+  cpsam_v2 0.998 ± 0.004, cpsam 0.999 ± 0.002, cpdino 0.999 ± 0.002, cpdino-vitb 0.998 ± 0.004 (v3 0.896 ± 0.168).
+  Test pooled TP/FP/FN: 8613/32/1, 8613/17/1, 8613/12/1, 8613/18/1 (v3 7437/354/1177). Dev macro 0.998–1.000.
+  Test mIoU@0.50: cpdino 0.928 > cpsam 0.912 > cpdino-vitb 0.910 > v3 0.902 > cpsam_v2 0.899.
+- Conclusion: the Cellpose result is a property of the model family. REPORT.md §3b added, §8 runtime and §9 updated.
+- Still open: flow3D_smooth / diameter sensitivity (dev); shape/contacts with cpdino if the hybrid route (B) is chosen.
