@@ -7,7 +7,7 @@ cd /d C:\Users\USER\batos-fullvolume
 set PY=C:\BA_TOS_DATA\envs\batos-py312\Scripts\python.exe
 set LOG=C:\BA_TOS_DATA\runs\fullvolume\full_c160.log
 echo [%date% %time%] PIPELINE START >> "%LOG%"
-"%PY%" -I scripts\run_fullvolume.py run --name full_c160 --block specimen --core 160 --workers 3 --mem-budget-gb 11 >> "%LOG%" 2>&1 || goto :fail
+"%PY%" -I scripts\run_fullvolume.py run --name full_c160 --block specimen --core 160 --scale-rule per_scan --workers 3 --mem-budget-gb 11 >> "%LOG%" 2>&1 || goto :fail
 "%PY%" -I scripts\run_fullvolume.py stitch --name full_c160 --orphan-rescue --variant _rescue >> "%LOG%" 2>&1 || goto :fail
 "%PY%" -I scripts\run_fullvolume.py evaluate --name full_c160 --variant _rescue >> "%LOG%" 2>&1 || goto :fail
 "%PY%" -I scripts\run_fullvolume.py evaluate --name full_c160 --variant _rescue --gt-set listed >> "%LOG%" 2>&1 || goto :fail
