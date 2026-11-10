@@ -22,14 +22,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import psutil
 import tifffile
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "scripts"))
-from batos_v2.evaluate_v2 import evaluate  # noqa: E402
-from batos_v3c import canonical  # noqa: E402
-from run_v32_dev import seed_stats  # noqa: E402
+from batos_v3c import canonical, eval_lean  # noqa: E402
 from run_v3_scale_test import MODES, crop_sets  # noqa: E402
 
 ROOT = Path(r"C:\BA_TOS_DATA\runs\v3c_dev")
@@ -41,6 +40,11 @@ KEEP = ("segmentations/tos_e11_min_distance_c1.tif", "segmentations/batos_select
 
 def log(msg: str) -> None:
     print(f"[{dt.datetime.now():%H:%M:%S}] {msg}", flush=True)
+
+
+def peak_mb() -> float:
+    """Driver process peak working set so far (MB); the canonical run is a separate subprocess with its own peak."""
+    return round(psutil.Process().memory_info().peak_wset / 2 ** 20, 1)
 
 
 def canon_sets() -> dict[float, list[dict]]:
@@ -65,10 +69,11 @@ def ensure(f: float, c: dict) -> dict:
     if out.exists():
         shutil.rmtree(out)
     rec = canonical.run(c["crop_id"], Path(c["gray_crop_path"]), out, r_probe=c.get("r_probe"))
+    rec["driver_peak_mb_after_run"] = peak_mb()
     cr = rec.get("canonical_run") or {}
     log(f"{c['crop_id']} v3c r {rec['r_granulo']:g} f {rec['f']:.3f} canon {rec['canonical_shape']} "
         f"gate {(cr.get('gate') or {}).get('gate_triggered')} markers {cr.get('tos_markers')} "
-        f"{rec.get('seconds_total')}s peak {rec.get('peak_memory_mb')} MB {'FAILED ' + rec['error'] if 'error' in rec else ''}")
+        f"{rec.get('seconds_total')}s peak {rec.get('peak_memory_mb')} MB driver {rec['driver_peak_mb_after_run']} MB {'FAILED ' + rec['error'] if 'error' in rec else ''}")
     return rec
 
 
@@ -106,10 +111,10 @@ def matched(pred: np.ndarray, gt: np.ndarray, valid: np.ndarray) -> dict[int, tu
 
 
 def boundary_cost(v3c: np.ndarray, v3: np.ndarray | None, gt: np.ndarray, valid: np.ndarray) -> dict:
-    a = matched(v3c, gt, valid)
+    a = eval_lean.matched(v3c, gt, valid)
     if v3 is None:
         return {"n_matched_v3c": len(a)}
-    b = matched(v3, gt, valid)
+    b = eval_lean.matched(v3, gt, valid)
     common = sorted(set(a) & set(b))
     out = {"n_matched_v3c": len(a), "n_matched_v3": len(b), "n_common": len(common)}
     for name, d in (("v3c", a), ("v3", b)):
@@ -121,36 +126,49 @@ def boundary_cost(v3c: np.ndarray, v3: np.ndarray | None, gt: np.ndarray, valid:
     return out
 
 
+def load_route(out: Path, route: str, shape) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(labels none, labels own, markers) of one route in native space; zeros for a failed run (one route at a time:
+    on the 400^3 / 420^3 windows the six native arrays together would cost ~1.8 GB)."""
+    if (out / "FAILED.json").exists():
+        z = np.zeros(shape, np.uint32)
+        return z, z, z
+    return tuple(tifffile.imread(out / "native" / f"{route}_{k}.tif") for k in ("labels", "labels_own", "markers"))
+
+
 def evaluate_crop(f: float, c: dict, rec: dict) -> None:
+    """Metrics via batos_v3c.eval_lean: slab-wise, exactly equal to batos_v2.evaluate_v2.evaluate (checked by
+    scripts/check_eval_lean.py on the 12 dev crops and on the 400^3 crop first scored with the frozen evaluator)."""
     done = ROOT / "eval" / f"{c['crop_id']}.json"
     if done.exists():
         return
     gt = tifffile.imread(c["gt_path"])
+    proto = eval_lean.protocol(gt, c["min_gt_voxels"])
     out = run_dir(f, c["crop_id"])
-    res = canonical.outputs(out, gt.shape)
     rows = []
-    for route, (pred, pred_own, markers) in res.items():
+    for route in canonical.ROUTES:
+        pred, pred_own, markers = load_route(out, route, gt.shape)
         for flt, p in (("none", pred), ("own", pred_own)):
             for mode, kw in MODES.items():
-                m, _, _ = evaluate(p, gt, markers if mode.startswith("markers") else None, morph_iou=None,
-                                   min_gt_voxels=c["min_gt_voxels"], **kw)
+                m = eval_lean.evaluate(p, gt, markers if mode.startswith("markers") else None,
+                                       min_gt_voxels=c["min_gt_voxels"], proto=proto, **kw)
                 rows.append({"crop_id": c["crop_id"], "dev_crop_id": c["dev_crop_id"], "factor": f, "method": "v3c",
                              "route": route, "size_filter": flt,
                              "size_filter_voxels": None if flt == "none" else canonical.SIZE_FILTER / rec["f"] ** 3,
                              "mode": mode, **m})
-    from batos_v2.evaluate_v2 import reference_protocol
-    valid = np.asarray(reference_protocol(gt, c["min_gt_voxels"])["valid_ids"])
+        del pred, pred_own, markers
+    valid = proto["valid_ids"]
     v3p = V3RUNS / f"x{f:g}" / c["crop_id"] / "e23c" / "watershed" / "segmentations" / "batos_selective_distance_c1.tif"
-    sel, _, sel_mk = res["BA-TOS_sel"]
+    sel, _, sel_mk = load_route(out, "BA-TOS_sel", gt.shape)
     cr = rec.get("canonical_run") or {}
     info = {"crop_id": c["crop_id"], "dev_crop_id": c["dev_crop_id"], "factor": f, "min_gt_voxels": c["min_gt_voxels"],
             "r_granulo": rec.get("r_granulo"), "f_canon": rec.get("f"), "canonical_shape": rec.get("canonical_shape"),
             "resampled": rec.get("resampled"), "failed": rec.get("error"), "gate": (cr.get("gate") or {}).get("gate_triggered"),
             "mv": (cr.get("gate") or {}).get("region_voxels_median"), "qv": (cr.get("gate") or {}).get("region_voxels_q75"),
             "tos_markers": cr.get("tos_markers"), "seconds": rec.get("seconds_total"), "peak_mb": rec.get("peak_memory_mb"),
-            **{f"seed_{k}": v for k, v in seed_stats(sel_mk, gt, c["min_gt_voxels"]).items()},
+            **{f"seed_{k}": v for k, v in eval_lean.seed_stats(sel_mk, gt, proto).items()},
             **{f"bnd_{k}": v for k, v in boundary_cost(sel, tifffile.imread(v3p) if v3p.exists() else None, gt,
-                                                        valid).items()}}
+                                                        valid).items()},
+            "evaluator": "batos_v3c.eval_lean (exact)", "driver_peak_mb": peak_mb()}
     (ROOT / "eval").mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(ROOT / "eval" / f"{c['crop_id']}.csv", index=False)
     done.write_text(json.dumps(info, indent=1, default=str), encoding="utf-8")
@@ -158,7 +176,7 @@ def evaluate_crop(f: float, c: dict, rec: dict) -> None:
     r = r[(r["mode"] == "markers_dominant") & (r.size_filter == "none")].set_index("route").f1_iou050
     log(f"{c['crop_id']} eval sel {r['BA-TOS_sel']:.3f} ToS {r['BA-TOS_ToS']:.3f} | markers/valid grain "
         f"{info['seed_markers_per_valid_grain']} split {info['seed_valid_split']} | mIoU v3c "
-        f"{info.get('bnd_v3c_miou_common')} v3 {info.get('bnd_v3_miou_common')}")
+        f"{info.get('bnd_v3c_miou_common')} v3 {info.get('bnd_v3_miou_common')} | driver peak {info['driver_peak_mb']} MB")
 
 
 def prune(f: float, crop: str) -> None:
