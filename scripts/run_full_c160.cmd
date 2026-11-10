@@ -1,6 +1,6 @@
 @echo off
 rem Phase 5g full run (decided 2026-11-10): frozen v3, cores 160^3 + halo 20 (200^3 padded tiles),
-rem one scale per scan (central r_granulo = 10), GT-free specimen-touching tiles (filled first),, <= 3 workers, 11 GB, orphan-rescue stitch. Restartable: re-running
+rem one scale per scan (central r_granulo = 10), GT-free specimen-touching tiles (filled first), <= 3 workers, 11 GB, orphan-rescue stitch. Restartable: re-running
 rem skips finished tiles. Progress: Get-Content C:\BA_TOS_DATA\runs\fullvolume\full_c160.log -Wait -Tail 20
 setlocal
 cd /d C:\Users\USER\batos-fullvolume
