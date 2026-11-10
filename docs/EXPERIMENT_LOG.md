@@ -828,3 +828,19 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   / 19, FN 0 in all; mIoU 0.888 / 0.888 / 0.888 / 0.861; s/crop 30 / 30 / 31 / 171. Filter 500: 1.000 for all.
 - Conclusion: flat; the default config stands. No setting selected, test not rerun. REPORT §3c.
 - all_runs.csv checked with pandas: 2136 previous rows kept, 72 new sensitivity rows.
+
+## 2026-11-10 — Phase 2 decisive checks 1–6 (user request); REPORT §2, §4, §7, §7b, §9
+
+- Checks 2–4 (strict mode on 64 crops, per-grain morphology, contacts incl. authors' ContactPoint) were already done
+  (d312d14); not rerun. Added v3's own seed-ignore scores next to strict/no-marker in §4: dev 0.988, test 0.921 pooled.
+- Check 1 (leakage): Cellpose-SAM preprint full text obtained (bioRxiv v1 PDF; the HTML returned HTTP 429). Dataset
+  list confirmed verbatim (22,826 2D cell/nuclei images, 19 named datasets, SA-1B init; 2D training only). No
+  micro-CT/granular/sand/soil/Zenodo 8014905. Training augmentations include Poisson noise, blur, downsampling and
+  0.25–4x rescaling. June 2026 models (cpsam_v2, cpdino*): README/docs give no dataset list; still undocumented.
+- Check 5: added EORGP01_00_test01 to scripts/robustness_cellpose_v3.py (seed = SEED + crop index, so existing inputs
+  are unchanged; md5 verified; prepare now skips existing files). Frozen v3 clean re-run = frozen test score 0.544.
+  v3: 0.544 / 0.685 / 0.062 / 0.000 (EMPTY) / 0.979 (0.5x); cpsam_v2 0.980 / 0.980 / 0.977 / 0.977 / 0.985.
+- Check 6: cpsam_v2 (fixed config) on the 36 synthetic scale crops (tag synth_cpsam_v2, 30 s/crop, no failures);
+  new scripts/evaluate_cellpose_synth.py. Macro F1@0.50, filter none: 1.000 / 0.998 / 0.999 / 0.963 at f 0.7/1/1.4/2
+  (v3 0.972 / 0.979 / 0.979 / 0.900); with size filter 500 f^3 cpsam_v2 1.000 at all factors.
+- REPORT §9 rewritten as a one-page "Implications for the paper": recommends framing (A) benchmark/protocol.

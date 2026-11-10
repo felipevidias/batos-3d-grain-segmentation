@@ -1,13 +1,24 @@
 # Phase 2 — Cellpose baselines vs BA-TOS v3 (dev 12 + held-out test 52 crops)
 
-Status 2026-11-10. Complete for **cpsam_v2** (main comparison, all analyses) and, for accuracy and runtime only, for
+Status 2026-11-10 (decisive checks 1–6 complete; see the table below). Complete for **cpsam_v2** (main comparison, all analyses) and, for accuracy and runtime only, for
 the other three Cellpose models **cpsam (v1), cpdino (DINOv3 ViT-L) and cpdino-vitb (DINOv3 ViT-B)**, all 64 crops,
 no failures (§3b). All four Cellpose models agree to within 0.002 F1. v3 = `batos-paper-v3-scalefree` (frozen, tag), BA-TOS_sel route; the gate never fires on
 these crops, so sel = ToS. Nothing was tuned on GT. No size filter unless stated.
 
 Sources of record: `tables.md` (crop-macro and pooled, filter none/500, runtime), `protocol_check/tables.md`
 (no-marker vs strict), `shape/tables.md` (morphology, boundary, scoring modes, contacts),
-`robustness/tables.md`. Rows `cellpose_cpsam_v2/<crop>` in `results/all_runs.csv`.
+`robustness/tables.md`, `synthetic_scale/tables.md`. Rows `cellpose_<tag>/<crop>` in `results/all_runs.csv`.
+
+**Decisive checks (request of 2026-11-10) → where answered:**
+
+| # | check | section | one-line answer |
+|---|---|---|---|
+| 1 | leakage | §2 | No micro-CT / granular / sand / soil / Zenodo 8014905 data in the documented Cellpose-SAM set (confirmed in the preprint's text). The June 2026 models (cpsam_v2, cpdino*) have no published dataset list. |
+| 2 | strict mode, 64 crops | §4 | Strict reverses the ranking (test 0.586 vs 0.776), only because cpsam_v2 also segments the face-truncated grains that are excluded from GT; counting them as GT gives 0.979 vs 0.604. |
+| 3 | per-grain morphology | §5 | cpsam_v2 is closer to GT shape (sphericity, elongation, centroid, MSD, HD95) on every specimen; its one bias is a ~1-voxel dilation. |
+| 4 | contacts | §6 | Contact recall vs GT 0.998 (cpsam_v2) vs 0.801 (v3); vs the authors' ContactPoint lists 1.000 vs 0.782. |
+| 5 | robustness (crop04, EORGP01_00_test01, + test04) | §7 | v3 collapses at 5 % noise on all three crops; cpsam_v2 ≥ 0.977 everywhere. |
+| 6 | synthetic scale 0.7/1.4/2.0 | §7b | cpsam_v2 1.000 / 0.999 / 0.963 (1.000 at every factor with the size filter); v3 0.972 / 0.979 / 0.900. |
 
 ## 1. Setup
 
@@ -21,11 +32,20 @@ Sources of record: `tables.md` (crop-macro and pooled, filter none/500, runtime)
 
 ## 2. Leakage check (training data of Cellpose-SAM / CellposeDINO)
 
-- **cpsam (original Cellpose-SAM, April 2025).** The preprint (Pachitariu, Rariden, Stringer, bioRxiv
-  10.1101/2025.04.28.651001) trains on 22,826 images / 3,341,254 ROIs of **cells and nuclei**. Named sources: Cellpose
-  (cyto2), Cellpose Nuclei, Omnipose, TissueNet, LiveCell, YeaZ, DeepBacs, NeurIPS 2022, MoNuSeg, MoNuSAC, CryoNuSeg,
-  NuInsSeg, BCCD, CPM 15+17, TNBC, LynSec, IHC TMA, CoNIC, PanNuke. These are all 2D light-microscopy or histology.
-  None is micro-CT, granular, sand or soil, and Zenodo 8014905 / Pinzón is not listed.
+- **cpsam (original Cellpose-SAM, April 2025). Confirmed from the preprint's full text** (bioRxiv
+  10.1101/2025.04.28.651001v1, posted 1 May 2025, PDF read 2026-11-10). Verbatim: *"The model was then trained on an
+  updated dataset of cells and nuclei containing 22,826 train images with a combined 3,341,254 training ROIs. This
+  dataset combines major currently available datasets: Cellpose, Cellpose Nuclei, Omnipose, TissueNet, LiveCell,
+  YeaZ, DeepBacs, Neurips 2022, MoNuSeg, MoNuSAC, CryoNuSeg, NuInsSeg, BCCD, CPM 15+17, TNBC, LynSec, IHC TMA,
+  CoNIC, PanNuke"*. The encoder is initialised from SAM, pretrained on SA-1B (natural images). Training is **2D only**.
+  3D masks come from averaging 2D flows over XY/XZ/YZ slices at test time. The only 3D data in the paper
+  (BlastoSPIM, PlantSeg) is used for finetuning experiments and was explicitly *not* used for training. The data
+  availability statement points to cellpose.org/dataset and to the cited labs' datasets. None of the datasets is
+  micro-CT, X-ray, granular, sand or soil, and Zenodo 8014905 / Pinzón is not listed.
+- **Relevant to §7 (not leakage).** The preprint's training augmentations add, on 50 % of every batch, *"Poisson
+  noise, Gaussian blurring, downsampling, and anisotropic blurring with downsampling"*, plus random rescaling by
+  0.25–4× around a 30-px mean diameter. Robustness to noise, downsampling and scale was trained in explicitly.
+  The §7 and §7b results are therefore expected behaviour, not luck.
 - **The one non-cell component** is inherited from the original Cellpose dataset (cyto/cyto2; Stringer et al., Nat.
   Methods 2021). It includes a small set (n = 98) of *non-microscopy* images "which contained large numbers of
   repeated objects such as fruits, rocks and jellyfish", collected by internet search. These are 2D natural photographs,
@@ -36,15 +56,21 @@ Sources of record: `tables.md` (crop-macro and pooled, filter none/500, runtime)
   30). **No dataset list was found** for these three; I could not verify their training data. The DINOv3 backbone is
   self-supervised pre-trained by Meta on LVD-1689M (web images, no segmentation labels). It may contain photos of sand
   or gravel, but not our labels.
+- **cpsam_v2 / cpdino / cpdino-vitb, re-checked 2026-11-10.** The GitHub README (MouseLand/cellpose) says only that
+  cpsam_v2 *"predicts fewer spurious masks in low-contrast regions"* and that cpdino models are *"based on DINOv3"*. It
+  cites no paper for these models. *"All Cellpose models are trained on data that is licensed under CC-BY-NC."*
+  The docs page (models.html) gives the backbone, the date and the 7.5–120 px diameter range only. No model card or
+  dataset list exists; to be asked of the authors before submission.
 - **Verdict.** There is no evidence of micro-CT, granular-material or Zenodo 8014905 data in any documented Cellpose
-  training set. Residual uncertainty: (a) the June 2026 models' data are undocumented; (b) the bioRxiv full text
-  returned HTTP 429, so the dataset list above comes from search excerpts of the preprint. It should be confirmed
-  against the preprint's methods section before it is cited.
+  training set; the Cellpose-SAM list is now confirmed from the primary text. Residual uncertainty is limited to the
+  undocumented June 2026 training sets. The original cpsam (whose list is documented) gives the same results
+  (§3b: test 0.999), so even a hypothetical addition of our data to the 2026 sets could not explain the result.
 - **A separate open point, not leakage.** How the Pinzón GT labels were produced (an automatic pipeline such as
   thresholding + watershed in spam, or manual) is not documented in this repo. If the GT is itself a watershed of a
   clean binarisation, "agreement with GT" partly measures agreement with that pipeline.
 
-Sources: bioRxiv 10.1101/2025.04.28.651001 (Cellpose-SAM); cellpose.readthedocs.io/en/latest/models.html; Stringer
+Sources: bioRxiv 10.1101/2025.04.28.651001v1 full text (Cellpose-SAM, methods "Model design" and "Whole-dataset
+training"); github.com/MouseLand/cellpose README; cellpose.readthedocs.io/en/latest/models.html; Stringer
 et al. 2021 Nat. Methods / bioRxiv 10.1101/2020.02.02.931238 (non-microscopy subset); Janelia figshare 13270466
 (Cellpose training dataset); ai.meta.com/dinov3 (DINOv3).
 
@@ -117,6 +143,12 @@ Four scoring modes, pooled F1@0.50 (TP/FP/FN):
 | test 52 | cpsam_v2 | 0.998 (8613/32/1) | 0.586 (8613/12193/1) | 0.952 (18900/1908/3) | **0.979** (20740/98/780) |
 | test 52 | v3 | 0.907 (7437/354/1177) | **0.776** (7697/3516/917) | 0.657 (10064/1691/8839) | 0.604 (10056/1699/11464) |
 
+v3 under its own **seed-ignore** rule (paper §III-C, the SIBGRAPI protocol; not applicable to Cellpose, which has
+no seeds): dev pooled 0.988 (2765/25/43), crop-macro 0.989; test pooled 0.921 (7652/358/962), crop-macro 0.912. So
+on all 64 crops (pooled F1@0.50, dev / test): v3 seed-ignore 0.988 / 0.921, no-marker 0.978 / 0.907, strict
+0.829 / 0.776; cpsam_v2 no-marker 0.998 / 0.998, strict 0.615 / 0.586. Even v3's most favourable protocol is below
+cpsam_v2's paper-protocol score on both splits.
+
 Interpretation: strict mode (nothing ignored, standard exclusions) reverses the ranking. But its extra "FPs" are
 predictions of the **excluded** GT grains: the grains truncated by the crop faces (and small fragments). cpsam_v2
 segments them; v3 rejects boundary-connected candidates by design. When those grains are counted as GT ("all GT,
@@ -175,8 +207,9 @@ cpsam_v2 1.336, v3 1.523.
 
 ## 7. Robustness (degraded inputs; frozen methods, no retuning)
 
-`scripts/robustness_cellpose_v3.py`. Crops: EFRGP01_00_crop04 (dev) and EORGP01_00_test04. The EO crop is a
-boundary crop and v3's best EO crop (clean 0.985); every EO interior crop is already a v3 capacity failure.
+`scripts/robustness_cellpose_v3.py`. Crops: EFRGP01_00_crop04 (dev), EORGP01_00_test01 (requested; an EO interior
+crop on which v3 already fails when clean, 0.544, and cpsam_v2 has its lowest test score, 0.980) and
+EORGP01_00_test04 (v3's best EO crop, clean 0.985, so degradation is visible).
 Additive Gaussian noise, sigma = 2 / 5 / 10 % of the grain-air contrast (difference of the Otsu class means,
 GT-free; seed 20261109). 0.5× = 2×2×2 block-mean downsampling to 100³; predictions upsampled ×2 (nearest) and
 scored on the original GT. Both methods frozen. v3 adapts its scale itself (r_granulo 10 → 5 and 15 → 7 at 0.5×).
@@ -187,10 +220,16 @@ No-marker mode, F1@0.50 (F1@0.75):
 |---|---|---|---|---|---|---|
 | EFRGP01_00_crop04 | cpsam_v2 | 1.000 (1.000) | 1.000 (1.000) | 1.000 (1.000) | 1.000 (1.000) | 1.000 (1.000) |
 | EFRGP01_00_crop04 | v3 | 0.980 (0.972) | 0.912 (0.908) | 0.127 (0.103) | 0.000 (0.000) | 0.662 (0.662) |
+| EORGP01_00_test01 | cpsam_v2 | 0.980 (0.980) | 0.980 (0.980) | 0.977 (0.977) | 0.977 (0.977) | 0.985 (0.985) |
+| EORGP01_00_test01 | v3 | 0.544 (0.471) | 0.685 (0.555) | 0.062 (0.052) | 0.000 (0.000) | 0.979 (0.967) |
 | EORGP01_00_test04 | cpsam_v2 | 1.000 (1.000) | 1.000 (1.000) | 1.000 (1.000) | 0.990 (0.990) | 1.000 (1.000) |
 | EORGP01_00_test04 | v3 | 0.985 (0.917) | 0.941 (0.861) | 0.000 (0.000) | 0.000 (0.000) | 0.976 (0.812) |
 
-- The clean v3 re-runs reproduce the frozen scores (0.980 and 0.985), so the robustness harness is faithful.
+- The clean v3 re-runs reproduce the frozen scores (0.980, 0.544, 0.985), so the robustness harness is faithful.
+- **EORGP01_00_test01** confirms the capacity mechanism from both sides. Clean, v3 keeps only 156 ToS markers for
+  170 valid grains (96 FN). At 10 % noise no ToS marker survives (EMPTY, scored as an empty segmentation). At 0.5×
+  downsampling the grains shrink back under the candidate cap and v3 jumps to **0.979** (234 markers). cpsam_v2 is
+  flat (0.977–0.985); its 6–7 FPs and 1 FN are the same in every condition.
 - **Native noise level.** The intrinsic noise of the scans is about 4.5 % (crop04) and 1.9 % (EO crop) of contrast.
   This is a robust MAD estimate of neighbour differences and slightly overestimated because it includes edges.
   Added noise of 5 % therefore roughly doubles the noise variance on crop04.
@@ -203,6 +242,28 @@ No-marker mode, F1@0.50 (F1@0.75):
 - **cpsam_v2** is unaffected except 0.990 at 10 % noise on the EO crop. Strict-mode numbers are in
   `robustness/tables.md`. They show the same pattern; cpsam_v2's strict ~0.60 is the face-grain effect of §4.
 - Strict-mode collapse of v3 (0.149 / 0.000 at 5 %) confirms that the noise failure is not an artefact of the ignore rule.
+
+## 7b. Synthetic scale set (factors 0.7 / 1.4 / 2.0 of the 12 dev crops)
+
+`scripts/evaluate_cellpose_synth.py`; crops from `scripts/make_synthetic_scale.py` (dev crops resampled about their
+centre; valid GT ≥ round(1000 f³) voxels). cpsam_v2 with the same fixed config (no diameter); v3 rows from the v3
+scale test. No-marker mode, size filter none; F1@0.50 crop-macro mean ± SD (min) and pooled TP/FP/FN.
+
+| factor | cpsam_v2 macro | cpsam_v2 pooled | v3 macro | v3 pooled |
+|---|---|---|---|---|
+| 0.7 | **1.000** ± 0.000 (0.998) | 8939 / 5 / 0 | 0.972 ± 0.012 (0.946) | 8813 / 342 / 126 |
+| 1.0 (original) | **0.998** ± 0.004 (0.987) | 2808 / 13 / 0 | 0.979 ± 0.011 (0.958) | 2711 / 25 / 97 |
+| 1.4 | **0.999** ± 0.002 (0.994) | 877 / 1 / 0 | 0.979 ± 0.007 (0.962) | 849 / 9 / 28 |
+| 2.0 | **0.963** ± 0.028 (0.919) | 188 / 14 / 0 | 0.900 ± 0.149 (0.571) | 174 / 21 / 14 |
+
+- With the size filter (500 f³ for cpsam_v2, v3's own 500 s³): cpsam_v2 **1.000 at every factor** (0 FP, 0 FN);
+  v3 0.991 / 0.981 / 0.984 / 0.960.
+- cpsam_v2's only scale effect is at 2×: a few small spurious fragments (14 FPs over 12 crops), never a missed grain.
+  v3 loses grains at 2× (14 FN; worst crop 0.571, EFRGP01_01_crop05_x2).
+- mIoU@0.50: cpsam_v2 0.870 / 0.888 / 0.877 / 0.891, v3 0.885 / 0.916 / 0.904 / 0.914. v3's matched grains overlap GT
+  slightly better at every scale (no dilation bias). This is the one metric where v3 leads, on the grains it finds.
+- The 0.7–2× range stays within Cellpose's trained diameter range (7.5–120 px, with 0.25–4× rescaling augmentation,
+  §2). This test therefore cannot find a scale regime outside Cellpose's training.
 
 ## 8. Runtime and memory (200³ crop)
 
@@ -217,50 +278,45 @@ No-marker mode, F1@0.50 (F1@0.75):
 Cellpose time is `model.eval` only (model load excluded, not measured). v3 is the whole pipeline, CPU, not
 contention-controlled. These are different devices; this is not a like-for-like speed comparison.
 
-## 9. Implications for the journal paper
+## 9. Implications for the paper (one page)
 
-**The accuracy claim is gone.** Used out of the box (default settings, one fixed config, no per-crop tuning, no
-fine-tuning), Cellpose-SAM v2 segments these micro-CT grain crops essentially perfectly under the paper's protocol:
-0.998 crop-macro F1@0.50 on 52 held-out crops from six specimens, minimum 0.980. It beats BA-TOS v3 on every specimen,
-on F1@0.75, on shape descriptors, on boundary distance and on contacts. The gap is largest exactly where v3 is
-weakest (EO, 0.73 → 0.997). The two scoring modes that change the treatment of excluded grains do not rescue
-BA-TOS: the "strict" mode favours v3 only because it counts segmented face-truncated grains as FPs, and counting
-those grains as GT gives cpsam_v2 0.979 vs v3 0.604. A journal paper whose thesis is "BA-TOS outperforms learned
-models on micro-CT grains" would be refuted by its own baseline. The robustness test widens the gap: v3 collapses at
-5 % added noise (≈ 2× the native noise variance), while cpsam_v2 stays at ≥ 0.990. The original Cellpose-SAM
-checkpoint (cpsam) and both CellposeDINO models (cpdino 0.999, cpdino-vitb 0.998) give the same picture, so this
-is a property of the model family, not of one lucky checkpoint.
+**What the data say.** Run out of the box (one fixed config per model, no fine-tuning, no per-crop tuning, no GT
+use), every Cellpose 4 model tested (cpsam_v2, cpsam, cpdino, cpdino-vitb) segments these micro-CT grain crops
+almost perfectly under the paper's protocol. Test crop-macro F1@0.50 is 0.998–0.999 over 52 held-out crops from six
+specimens, against 0.896 for frozen BA-TOS v3 (0.912 under v3's own seed-ignore rule). The gap is not a protocol
+artefact (§4: strict mode reverses the ranking only by counting segmented face-truncated grains as FP; counting them
+as GT gives 0.979 vs 0.604). It is not leakage (§2: documented training data is 2D cells/nuclei; the original cpsam,
+whose list is documented, gives the same result). It is not one checkpoint (§3b) or one setting (§3c). It holds for
+shape (§5), contacts (§6), noise and resolution (§7) and scale 0.7–2× (§7b). Where BA-TOS fails (EO specimens,
+noise ≥ 5 %), the failure is one mechanism, ToS candidate capacity, which the data confirm from both sides (§7,
+EORGP01_00_test01).
 
-**What BA-TOS still has, honestly stated:**
-1. *No learning, no GPU, no external weights, fully inspectable.* Every marker traces to a Tree-of-Shapes node with
-   a score; the failure mode (candidate capacity at the 1800/s³ cap, `results/test_v3/REPORT.md`) is diagnosable and
-   GT-free detectable. This is a real but secondary contribution, and reviewers will weigh it against a 0.10 F1 gap.
-2. *Lower median volume error on EF grains* (no 1-voxel dilation). This is narrow and probably closed by a trivial
-   calibration of Cellpose.
-3. *Licensing / provenance.* Cellpose models are trained on CC-BY-NC data. For some industrial users that matters,
-   but it is not a scientific argument.
+**What cannot be claimed.**
+- That BA-TOS is more accurate than learned / foundation models on micro-CT grains, on any metric reported here
+  except mean matched IoU of the grains it does find (v3 0.902–0.916 vs cpsam_v2 0.888–0.899; cpdino 0.928 beats it).
+- That BA-TOS is more robust, or that a "harder regime" (noise, low resolution, other scales) favours it: §7 and §7b
+  show the opposite, and Cellpose-SAM was explicitly trained with noise, blur, downsampling and 0.25–4× rescaling.
+- Anything based on the strict mode.
 
-**Defensible reframings (decision for the authors):**
-- **(A) Benchmark / evaluation paper.** Make the contribution the *protocol and dataset*: 64 GT-free-defined crops
-  over six specimens, the face-exclusion and ignore-rule analysis (the strict vs all-GT modes show how much the
-  protocol choice moves the ranking), shape/contact fidelity, robustness. Report BA-TOS v3 as the
-  classical/morphological reference and Cellpose as the learned reference.
-- **(B) Hybrid.** Use the strengths of each: Cellpose for instances, connected operators for a measurable, auditable
-  post-step (e.g. boundary calibration from the ToS, contact-area estimation, or GT-free QC that flags the crops where
-  either method fails). Phase 3/5 (BA-TOS-prompted promptable models) fits here. It has to show a gain over cpsam_v2
-  alone, which leaves at most ~0.002 F1 at IoU 0.50, so any gain would have to come in boundary or shape metrics.
-- **(C) Harder regime.** The present data may simply be easy for a generalist model: well-separated, high-contrast
-  grains, ~100 µm voxels, ~30 px diameter (Cellpose's training mean). §7 already shows that the obvious "harder"
-  axes (noise, resolution) hurt **BA-TOS, not Cellpose**. v3 breaks at about 1.5–2× the native noise; cpsam_v2 does
-  not move up to 10 %. A harder regime that favours BA-TOS would have to be found elsewhere: non-convex or fractured
-  grains, materials or contrasts outside Cellpose's experience, or very large grains (> 120 px). Without such data,
-  (C) is speculation, and the noise result argues against it.
-- Do **not** reframe around the strict mode: it is explained above and would not survive review.
+**What can be claimed honestly.**
+1. A training-free, GPU-free, fully inspectable pipeline: every marker traces to a ToS node with a score, failures
+   are diagnosable and GT-free detectable (capacity and support-collapse statistics). Real, but secondary next to a
+   0.10 F1 gap on held-out data.
+2. Boundary placement without a dilation bias on the grains it finds (lower median volume error on EF; higher matched
+   IoU than cpsam_v2). Narrow; a 1-voxel calibration of Cellpose would probably close it, and cpdino already does.
+3. Licensing and provenance: no CC-BY-NC weights, no DINOv3 licence. Relevant to some users; not a scientific result.
 
-**Before any of this is written up:**
-- Confirm the Cellpose-SAM dataset list in the preprint's methods (and ask the authors about the June 2026 models).
-- Establish how the Pinzón GT was produced.
-- ~~Finish cpsam / cpdino / cpdino-vitb.~~ Done: all four agree (§3b).
-- If (B) is pursued, repeat §5 (shape/boundary) with cpdino, the Cellpose model with the best matched IoU, since any
-  hybrid has to beat the strongest boundary baseline, not the default one.
-- ~~Run the planned flow3D_smooth / diameter sensitivity (dev only).~~ Done: flat (§3c).
+**Recommended framing (decision for the authors).**
+- **(A) Benchmark and protocol paper, recommended.** Contribution: a GT-free-defined 64-crop benchmark over six
+  specimens; an analysis of how face exclusion and the ignore rule move rankings (§4, the cleanest new result); shape,
+  contact and robustness evaluation against the authors' own contact data; BA-TOS v3 as the transparent morphological
+  reference with its failure mechanism explained, Cellpose 4 as the learned reference. Everything needed is done.
+- **(B) Hybrid.** Viable only if it beats cpsam_v2/cpdino on boundary, shape or contact metrics; F1@0.50 has no room
+  left (≤ 0.002). Candidates: a ToS-based boundary refinement of Cellpose masks, or GT-free QC that flags failures. It
+  must be designed on dev and frozen before test, and §5 should first be rerun with cpdino as the stronger baseline.
+- **(C) Harder regime: not supported.** Needs data outside Cellpose's training experience (e.g. fractured,
+  non-convex or very large grains, other modalities). None is in hand.
+
+**Before submission.** Ask the Cellpose authors for the June 2026 training sets. Document how the Pinzón GT was
+produced: if it is itself a watershed of a clean threshold, "agreement with GT" partly measures agreement with that
+pipeline, for both methods. Report v3's mIoU advantage and cpsam_v2's dilation bias explicitly, rather than only F1.

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Phase 2 robustness: degrade the input and run cpsam_v2 and frozen BA-TOS v3 (no parameter change).
 
-Crops: EFRGP01_00_crop04 (dev) and EORGP01_00_test04 (EO test crop on which v3 works best, F1 0.985; every EO
-interior crop is already a v3 capacity failure, 0.40-0.70, so degradation would not be visible there).
+Crops: EFRGP01_00_crop04 (dev), EORGP01_00_test04 (EO test crop on which v3 works best, F1 0.985) and
+EORGP01_00_test01 (added 2026-11-10 at the user's request; the EO crop on which cpsam_v2 scores lowest, 0.980).
+The noise seed is SEED + index in CROPS, so appending a crop leaves the earlier inputs unchanged; prepare skips
+inputs that already exist.
 Conditions (GT-free, seed 20261109):
   clean
   noise2 / noise5 / noise10 : additive Gaussian noise, sigma = 2 / 5 / 10 % of the grain-air contrast,
@@ -40,7 +42,7 @@ ROOT = Path(r"C:\BA_TOS_DATA\runs\robustness")
 INPUTS = ROOT / "inputs"
 CP_ROOT = Path(r"C:\BA_TOS_DATA\runs\cellpose\robustness_cpsam_v2")
 OUT = REPO / "results" / "cellpose" / "robustness"
-CROPS = ["EFRGP01_00_crop04", "EORGP01_00_test04"]
+CROPS = ["EFRGP01_00_crop04", "EORGP01_00_test04", "EORGP01_00_test01"]
 NOISE = {"noise2": 0.02, "noise5": 0.05, "noise10": 0.10}
 CONDS = ["clean", *NOISE, "down05"]
 SEED = 20261109
@@ -80,7 +82,8 @@ def prepare() -> None:
                 y = np.rint(x[:2 * z, :2 * yy, :2 * xx].reshape(z, 2, yy, 2, xx, 2).mean(axis=(1, 3, 5))).astype(np.uint16)
             name = f"{crop}__{cond}"
             p = INPUTS / f"{name}.tif"
-            tifffile.imwrite(p, y, compression="zlib")
+            if not p.exists():
+                tifffile.imwrite(p, y, compression="zlib")
             rows.append({"crop_id": name, "gray_path": str(p)})
             info.append({"crop": crop, "condition": cond, "otsu": float(t), "contrast": contrast,
                          "sigma": NOISE.get(cond, 0.0) * contrast, "shape": "x".join(map(str, y.shape))})
