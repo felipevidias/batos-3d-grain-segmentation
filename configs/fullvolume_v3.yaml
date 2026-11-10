@@ -1,0 +1,34 @@
+# Phase 5g — full-volume tiled BA-TOS v3. The METHOD is the frozen batos-paper-v3-scalefree
+# (configs/batos_paper_v3_scalefree.yaml, hash-checked before every run); nothing below changes it.
+# Everything here is tiling / stitching / evaluation bookkeeping, fixed a priori (never tuned on GT).
+preset: batos-fullvolume-v3
+method_config: configs/batos_paper_v3_scalefree.yaml
+volume:
+  scan: EFRGP01_00
+  gray: C:\Users\USER\Downloads\PhDUpload\PhDUpload\EFR\Greyscale\EFRGP01_00.tif
+  gt: C:\BA_TOS_DATA\gt_full\EFRGP01_00.tif
+  roi_labels_inside: C:\Users\USER\Downloads\PhDUpload\PhDUpload\EFR\ROI\EFRGP01_labelsInside.txt
+  axis_order: zyx
+tiling:
+  core: 200
+  # halo = 2 * r_granulo, r_granulo estimated ONCE (GT-free, batos_v3.scale.estimate) on the central 200^3 crop
+  # of the volume. A single halo keeps the grid regular and the halo known before any tile runs; frozen v3 still
+  # estimates its own r_granulo / s inside every padded tile (that is the method), and both are recorded.
+  halo_factor: 2.0
+  central_crop: volume_center
+  ownership: instance centroid (floor) inside the tile core
+stitch:
+  route: BA-TOS_sel          # primary route; per-tile gate state is recorded (ToS == sel where the gate is off)
+  order: tile index (z, y, x) # deterministic, sequential
+  match_iou: 0.5             # one-to-one greedy IoU matching between instances of different tiles; matched -> keep larger
+  contested_voxels: core_authority  # unmatched overlap: voxel goes to the instance whose tile core contains it, else stays
+evaluation:
+  module: batos_fullvolume.stream_eval (streaming re-implementation of batos_v2.evaluate_v2, verified identical on dev crops)
+  rule: dominant (seed-ignore, markers = surviving seed voxels of the stitched instances)
+  valid_gt: label in roi_labels_inside AND >= 1000 voxels (full-volume count) AND bbox inside the evaluated core box
+  iou: [0.25, 0.5, 0.75]
+  size_filter: [none, '500', own]   # own = 500 s^3 with s of the instance's owner tile
+resources:
+  max_workers: 3
+  mem_budget_gb: 11
+out_root: C:\BA_TOS_DATA\runs\fullvolume
