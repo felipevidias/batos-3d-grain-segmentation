@@ -798,3 +798,19 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - The radius is too small for these grains: markers 0.8 r_granulo apart still fit several per grain, so H2
     removes far fewer v3.1 duplicates than H1.
   - **H2 does not hold.** Next per the pre-registered order: H3 (merge touching exclusive supports ≤ V_g).
+- H3 (merge touching exclusive supports ≤ V_g), all factors 12/12. Peak 3.6 GB (supports export).
+  - f = 0.7 0.975 (pass), f = 1.0 0.989 (pass), f = 1.4 **0.941** (fail), f = 2.0 **0.326** (fail).
+    At every factor the result equals v3.1 bit-for-bit in score.
+  - Cause: 0 merges on all 48 crops. `touching_pairs` = 0 everywhere.
+  - Checked on EFRGP01_00_crop02_x2 to rule out a bug:
+    - all 213 marker labels are present in the leaf volume;
+    - leaf voxel counts equal `region_voxels`;
+    - each marker point lies inside its own support.
+  - The supports are compact cores of ~100–300 voxels, against V_g = 11 494 at f = 1.4. They cover 5.5 % of the
+    crop. Only 6 of the 3 600 candidate supports touch any other, and none of those are kept markers.
+  - So with exclusive supports, the rule as specified cannot act. **H3 does not hold.**
+- **Phase 5h outcome: no hypothesis holds** (all three pass f = 0.7 / 1.0 and fail f = 1.4 / 2.0).
+  - Per the pre-registered rule: no freeze, no `batos-paper-v3.2` tag.
+  - Test set 2 was not cut and is still unseen; seed 20261109 is reserved.
+  - v3 (`batos-paper-v3-scalefree`) stays the journal method.
+  - Tables: `results/v32_dev/tables.md`.
