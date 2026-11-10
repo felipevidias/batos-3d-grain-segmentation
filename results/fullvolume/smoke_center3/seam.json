@@ -1,0 +1,59 @@
+{
+ "definitions": {
+  "reconciled": "stitched instance that replaced / was compared to a matched instance of another tile (IoU >= match_iou) or won / lost contested voxels to another tile's instance",
+  "pred_crosses_core": "prediction extends beyond the core of the tile that owns it (carried by the halo)",
+  "gt_crosses_core": "GT bbox spans >= 2 tile cores (seam GT); interior = inside one core",
+  "group_f1": "TP / FN over the GT group, FP = unmatched evaluated predictions of the matching pred group"
+ },
+ "matched_gt": 4538,
+ "frac_matched_gt_pred_reconciled": 0.2880123402379903,
+ "frac_matched_gt_pred_crosses_core": 0.27633318642573823,
+ "frac_valid_gt_crosses_core": 0.31107410491257287,
+ "n_instances": 9034,
+ "n_reconciled_instances": 2284,
+ "n_dropped_matched": 16,
+ "seam_gt_vs_interior": {
+  "seam": {
+   "valid_gt": 1868,
+   "pred_eval": 1421,
+   "tp": 1161,
+   "fp": 167,
+   "fn": 707,
+   "recall": 0.6215203426124197,
+   "f1": 0.7265331664580726,
+   "mean_matched_iou": 0.9042394311628755
+  },
+  "interior": {
+   "valid_gt": 4137,
+   "pred_eval": 3549,
+   "tp": 3377,
+   "fp": 265,
+   "fn": 760,
+   "recall": 0.8162919990331158,
+   "f1": 0.8682349916441702,
+   "mean_matched_iou": 0.9129476452705086
+  }
+ },
+ "reconciled_vs_not": {
+  "reconciled": {
+   "valid_gt": 1982,
+   "pred_eval": 1489,
+   "tp": 1307,
+   "fp": 182,
+   "fn": 675,
+   "recall": 0.6594349142280524,
+   "f1": 0.7530970901757419,
+   "mean_matched_iou": 0.9021637258364703
+  },
+  "not_reconciled": {
+   "valid_gt": 4023,
+   "pred_eval": 3481,
+   "tp": 3231,
+   "fp": 250,
+   "fn": 792,
+   "recall": 0.8031319910514542,
+   "f1": 0.8611407249466951,
+   "mean_matched_iou": 0.9141808071774494
+  }
+ }
+}
