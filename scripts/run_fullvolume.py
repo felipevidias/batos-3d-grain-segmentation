@@ -135,6 +135,66 @@ class Sampler(threading.Thread):
                 self.stop_ev.wait(2.0)
 
 
+class StageGate:
+    """Memory admission per frozen-stage SUBPROCESS (scheduling only: command lines and frozen files unchanged).
+    Every stage reserves est(stage) = 1.1 x the largest peak measured so far for that stage script (default
+    `default_mb` until measured) and waits until the reservations of all running stages fit in `budget_mb`.
+    Installed by replacing batos_v3.pipeline.run_tracked (the frozen launcher) with a gated wrapper in this
+    process."""
+
+    def __init__(self, budget_mb: float, default_mb: float, seen: dict | None = None):
+        self.budget, self.default = budget_mb, default_mb
+        self.used, self.cv = 0.0, threading.Condition()
+        self.peak = dict(seen or {})
+
+    @staticmethod
+    def key(cmd: list) -> str:
+        cmd = [str(c) for c in cmd]
+        if "-m" in cmd:
+            return cmd[cmd.index("-m") + 1]
+        py = [c for c in cmd if c.endswith(".py")]
+        return Path(py[0]).name if py else cmd[0]
+
+    def est(self, k: str) -> float:
+        return 1.1 * self.peak[k] if k in self.peak else self.default
+
+    def install(self):
+        import batos_v3.pipeline as pl
+        orig = pl.run_tracked
+        if getattr(orig, "_gated", False):
+            return
+
+        def gated(cmd, log_path):
+            k = self.key(cmd)
+            with self.cv:
+                need = min(self.est(k), self.budget)
+                while self.used + need > self.budget and self.used > 0:
+                    self.cv.wait()
+                self.used += need
+            try:
+                rc, peak = orig(cmd, log_path)
+            finally:
+                with self.cv:
+                    self.used -= need
+                    self.cv.notify_all()
+            with self.cv:
+                self.peak[k] = max(self.peak.get(k, 0.0), peak)
+            return rc, peak
+        gated._gated = True
+        pl.run_tracked = gated
+
+
+def seen_stage_peaks(out: Path) -> dict:
+    seen = {}
+    for p in (out / "tiles").glob("*/tile.json"):
+        r = json.loads(p.read_text(encoding="utf-8"))
+        for s in r.get("steps") or []:
+            k = Path(s["cmd0"]).name if s["cmd0"].endswith(".py") else {"scale": "batos_v3.scale",
+                                                                           "flatten": "batos_v2.flatten_fixed"}.get(s["step"], s["cmd0"])
+            seen[k] = max(seen.get(k, 0.0), float(s["peak_memory_mb"]))
+    return seen
+
+
 def write_manifest(name: str, tiles: list[Tile]) -> pd.DataFrame:
     rows = []
     for t in tiles:
@@ -188,20 +248,18 @@ def cmd_run(a) -> int:
     lock = threading.Lock()
     running: dict[str, threading.Thread] = {}
     errors: list[str] = []
-    peaks = [float(r["peak_memory_mb"]) for r in (json.loads(p.read_text(encoding="utf-8"))
-                                                   for p in (out / "tiles").glob("*/tile.json"))
-             if r.get("peak_memory_mb")]
-    est = {"mb": max(peaks) if peaks else a.initial_peak_mb}
+    gate = StageGate(a.mem_budget_gb * 1024 - a.driver_overhead_mb, a.initial_peak_mb, seen_stage_peaks(out))
+    gate.install()
+    log(f"stage gate: budget {gate.budget:.0f} MB for stage subprocesses; known stage peaks "
+        f"{ {k: round(v) for k, v in gate.peak.items()} }")
+    sess["stage_gate_budget_mb"] = gate.budget
     sampler = Sampler(out / "resources.csv", lambda: len(running))
     sampler.start()
     t_start = time.time()
 
     def work(t: Tile):
         try:
-            r = process_tile(t, GRAY, out, halo)
-            if r.get("peak_memory_mb"):
-                with lock:
-                    est["mb"] = max(est["mb"], float(r["peak_memory_mb"]))
+            process_tile(t, GRAY, out, halo)
         except Exception as e:  # driver bug, not a method failure: stop scheduling, report loudly
             errors.append(f"{t.tile_id}: {e!r}")
             log(f"ERROR {t.tile_id}: {e!r}")
@@ -212,15 +270,13 @@ def cmd_run(a) -> int:
     queue = list(todo)
     while queue and not errors:
         with lock:
-            allowed = max(1, min(a.workers, int(a.mem_budget_gb * 1024 // (est["mb"] + 400))))
             n = len(running)
-        if n < allowed:
+        if n < a.workers:
             t = queue.pop(0)
             th = threading.Thread(target=work, args=(t,), daemon=True)
             with lock:
                 running[t.tile_id] = th
-            log(f"start {t.tile_id} ({len(tiles) - len(queue)}/{len(tiles)}; running {n + 1}/{allowed}, "
-                f"est peak/tile {est['mb']:.0f} MB)")
+            log(f"start {t.tile_id} ({len(tiles) - len(queue)}/{len(tiles)}; running {n + 1}/{a.workers})")
             th.start()
         else:
             time.sleep(2)
@@ -427,7 +483,9 @@ def main(argv=None) -> int:
     r.add_argument("--workers", type=int, default=3)
     r.add_argument("--mem-budget-gb", type=float, default=float(CFG["resources"]["mem_budget_gb"]))
     r.add_argument("--initial-peak-mb", type=float, default=6000.0,
-                   help="assumed per-tile peak before the first tile has been measured")
+                   help="assumed per-STAGE peak before that stage has been measured")
+    r.add_argument("--driver-overhead-mb", type=float, default=800.0,
+                   help="RSS reserved for this driver process (post-processing of a 240^3 tile)")
     st = sub.add_parser("stitch")
     st.add_argument("--name", required=True)
     st.add_argument("--route", default=CFG["stitch"]["route"])

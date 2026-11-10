@@ -133,6 +133,34 @@ def stitch(tiles: list[Tile], tile_root: Path, out_dir: Path, route: str = "BA-T
             seeds_zyx.append(sd["zyx"][s])
             seeds_gid.append(np.full(int(s.sum()), gid, np.uint32))
     L.flush()
+    # orphan diagnostic: every NON-owned tile instance vs the final labels (best IoU). An instance whose grain
+    # no tile owns (each tile's centroid falls in the other's core) has best IoU ~0: a seam loss.
+    orphans = []
+    for tile in sorted(tiles, key=lambda t: (t.iz, t.iy, t.ix)):
+        d = tile_root / tile.tile_id
+        if json.loads((d / "tile.json").read_text(encoding="utf-8"))["status"] != "DONE":
+            continue
+        full = tifffile.imread(d / f"full_{route}.tif")
+        tab = pd.read_csv(d / f"instances_{route}.csv")
+        pad0 = np.array([a for a, _ in tile.pad])
+        boxes = ndi.find_objects(full)
+        for a in tab.loc[~tab.owned, "label"]:
+            sl_t = boxes[a - 1]
+            g0 = pad0 + [s.start for s in sl_t] - off
+            g1 = pad0 + [s.stop for s in sl_t] - off
+            if np.any(g0 < 0) or np.any(g1 > np.array(shape)):
+                continue  # instance leaves the stitched box (block border): not a seam case
+            mask = full[sl_t] == a
+            cur = np.asarray(L[tuple(slice(int(x), int(y)) for x, y in zip(g0, g1))])[mask]
+            ids, cnt = np.unique(cur[cur > 0], return_counts=True)
+            best = 0.0
+            for b, n in zip(ids.tolist(), cnt.tolist()):
+                if b in reg:
+                    best = max(best, n / (mask.sum() + reg[b]["voxels"] - n))
+            orphans.append({"tile_id": tile.tile_id, "local_label": int(a), "voxels": int(mask.sum()),
+                            "best_iou_final": best})
+    orph = pd.DataFrame(orphans)
+    orph.to_csv(out_dir / "nonowned_vs_final.csv", index=False)
     del L
     inst_df = pd.DataFrame([{k: v for k, v in r.items() if k != "slices"} for r in reg.values()])
     inst_df.to_csv(out_dir / "instances.csv", index=False)
@@ -144,7 +172,12 @@ def stitch(tiles: list[Tile], tile_root: Path, out_dir: Path, route: str = "BA-T
     meta = {"route": route, "match_iou": match_iou, "contested_voxels": "core_authority",
             "box": [list(b) for b in box], "offset": off.tolist(), "shape": list(shape), "dtype": "uint32",
             "labels": str(lab_path), "n_instances": int(len(inst_df)), "n_dropped": len(dropped),
-            "max_gid": gid_next - 1, "tiles": [t.tile_id for t in tiles],
+            "max_gid": gid_next - 1,
+            "nonowned_checked": int(len(orph)),
+            "nonowned_best_iou_lt050": int((orph.best_iou_final < 0.5).sum()) if len(orph) else 0,
+            "nonowned_best_iou_lt050_ge1000vox": int(((orph.best_iou_final < 0.5) & (orph.voxels >= 1000)).sum())
+            if len(orph) else 0,
+            "tiles": [t.tile_id for t in tiles],
             "seconds": round(time.time() - t_start, 1)}
     (out_dir / "labels_meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     return meta
