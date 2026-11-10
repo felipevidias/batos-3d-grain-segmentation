@@ -9,7 +9,7 @@ Primary: crop-macro F1 BA-TOS_sel, seed-ignore (markers_dominant). v3.1 = v3 for
 | v3.2-H1 | 0.7 | 0 | nan | nan | None |
 | v3.2-H1 | 1 | 12 | 0.991 | 0.985 | True |
 | v3.2-H1 | 1.4 | 0 | nan | nan | None |
-| v3.2-H1 | 2 | 0 | nan | nan | None |
+| v3.2-H1 | 2 | 12 | 0.876 | 0.933 | False |
 
 ## Crop-macro F1@0.50, size filter none (mean ± SD, min, # < 0.90; pooled)
 
@@ -18,7 +18,7 @@ Primary: crop-macro F1 BA-TOS_sel, seed-ignore (markers_dominant). v3.1 = v3 for
 | 0.7 | 0.975 ± 0.014, min 0.946, 0; pooled 0.978 (n 12) | 0.975 ± 0.014, min 0.946, 0; pooled 0.978 (n 12) | — |
 | 1 | 0.989 ± 0.008, min 0.974, 0; pooled 0.988 (n 12) | 0.989 ± 0.008, min 0.974, 0; pooled 0.988 (n 12) | 0.991 ± 0.008, min 0.974, 0; pooled 0.989 (n 12) |
 | 1.4 | 0.995 ± 0.007, min 0.982, 0; pooled 0.995 (n 12) | 0.941 ± 0.097, min 0.735, 2; pooled 0.951 (n 12) | — |
-| 2 | 0.938 ± 0.138, min 0.621, 2; pooled 0.947 (n 12) | 0.326 ± 0.087, min 0.247, 12; pooled 0.315 (n 12) | — |
+| 2 | 0.938 ± 0.138, min 0.621, 2; pooled 0.947 (n 12) | 0.326 ± 0.087, min 0.247, 12; pooled 0.315 (n 12) | 0.876 ± 0.086, min 0.692, 7; pooled 0.883 (n 12) |
 
 ## Crop-macro F1@0.75, size filter none (mean ± SD, min, # < 0.90; pooled)
 
@@ -27,7 +27,7 @@ Primary: crop-macro F1 BA-TOS_sel, seed-ignore (markers_dominant). v3.1 = v3 for
 | 0.7 | 0.974 ± 0.013, min 0.946, 0; pooled 0.977 (n 12) | 0.974 ± 0.013, min 0.946, 0; pooled 0.977 (n 12) | — |
 | 1 | 0.986 ± 0.010, min 0.966, 0; pooled 0.985 (n 12) | 0.986 ± 0.010, min 0.966, 0; pooled 0.985 (n 12) | 0.988 ± 0.010, min 0.966, 0; pooled 0.987 (n 12) |
 | 1.4 | 0.995 ± 0.007, min 0.982, 0; pooled 0.995 (n 12) | 0.940 ± 0.100, min 0.721, 2; pooled 0.950 (n 12) | — |
-| 2 | 0.938 ± 0.138, min 0.621, 2; pooled 0.947 (n 12) | 0.323 ± 0.089, min 0.247, 12; pooled 0.311 (n 12) | — |
+| 2 | 0.938 ± 0.138, min 0.621, 2; pooled 0.947 (n 12) | 0.323 ± 0.089, min 0.247, 12; pooled 0.311 (n 12) | 0.876 ± 0.086, min 0.692, 7; pooled 0.883 (n 12) |
 
 ## Crop-macro F1@0.50, size filter own (mean ± SD, min, # < 0.90; pooled)
 
@@ -36,7 +36,7 @@ Primary: crop-macro F1 BA-TOS_sel, seed-ignore (markers_dominant). v3.1 = v3 for
 | 0.7 | 0.995 ± 0.004, min 0.987, 0; pooled 0.994 (n 12) | 0.995 ± 0.004, min 0.987, 0; pooled 0.994 (n 12) | — |
 | 1 | 0.990 ± 0.008, min 0.974, 0; pooled 0.989 (n 12) | 0.990 ± 0.008, min 0.974, 0; pooled 0.989 (n 12) | 0.991 ± 0.008, min 0.974, 0; pooled 0.990 (n 12) |
 | 1.4 | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) | 0.999 ± 0.003, min 0.988, 0; pooled 0.999 (n 12) | — |
-| 2 | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) | 0.996 ± 0.011, min 0.970, 0; pooled 0.995 (n 12) | — |
+| 2 | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) | 0.996 ± 0.011, min 0.970, 0; pooled 0.995 (n 12) | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) |
 
 ## Crop-macro F1@0.75, size filter own (mean ± SD, min, # < 0.90; pooled)
 
@@ -45,7 +45,7 @@ Primary: crop-macro F1 BA-TOS_sel, seed-ignore (markers_dominant). v3.1 = v3 for
 | 0.7 | 0.994 ± 0.003, min 0.987, 0; pooled 0.994 (n 12) | 0.994 ± 0.003, min 0.987, 0; pooled 0.994 (n 12) | — |
 | 1 | 0.987 ± 0.010, min 0.966, 0; pooled 0.986 (n 12) | 0.987 ± 0.010, min 0.966, 0; pooled 0.986 (n 12) | 0.988 ± 0.010, min 0.966, 0; pooled 0.987 (n 12) |
 | 1.4 | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) | 0.997 ± 0.010, min 0.964, 0; pooled 0.998 (n 12) | — |
-| 2 | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) | 0.987 ± 0.032, min 0.909, 0; pooled 0.984 (n 12) | — |
+| 2 | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) | 0.987 ± 0.032, min 0.909, 0; pooled 0.984 (n 12) | 1.000 ± 0.000, min 1.000, 0; pooled 1.000 (n 12) |
 
 ## Seed diagnostics, BA-TOS_sel markers (medians over crops; GT = diagnosis only)
 
@@ -60,6 +60,7 @@ Primary: crop-macro F1 BA-TOS_sel, seed-ignore (markers_dominant). v3.1 = v3 for
 | 1.4 | v3.1 | 0.53 | 1.02 | 1.000 | 0.019 | 2 | 1.80 |
 | 2 | v3 | 0.42 | 1.00 | 1.000 | 0.000 | 0 | 2.97 |
 | 2 | v3.1 | 2.62 | 5.90 | 1.000 | 1.000 | 2 | 16.99 |
+| 2 | v3.2-H1 | 0.82 | 1.15 | 1.000 | 0.148 | 1 | 5.49 |
 
 ## Per crop F1@0.50 (sel, no filter)
 
@@ -101,15 +102,15 @@ Primary: crop-macro F1 BA-TOS_sel, seed-ignore (markers_dominant). v3.1 = v3 for
 | EFRGP01_01_crop05 | 1.4 | 0.989 | 0.735 | — |
 | EFRGP01_01_crop06 | 1.4 | 1.000 | 0.988 | — |
 | EFRGP01_01_crop07 | 1.4 | 0.993 | 0.993 | — |
-| EFRGP01_00_crop02 | 2 | 1.000 | 0.367 | — |
-| EFRGP01_00_crop03 | 2 | 1.000 | 0.468 | — |
-| EFRGP01_00_crop04 | 2 | 1.000 | 0.275 | — |
-| EFRGP01_00_crop05 | 2 | 0.667 | 0.247 | — |
-| EFRGP01_00_crop06 | 2 | 1.000 | 0.306 | — |
-| EFRGP01_00_crop07 | 2 | 1.000 | 0.274 | — |
-| EFRGP01_01_crop02 | 2 | 1.000 | 0.430 | — |
-| EFRGP01_01_crop03 | 2 | 0.973 | 0.480 | — |
-| EFRGP01_01_crop04 | 2 | 1.000 | 0.261 | — |
-| EFRGP01_01_crop05 | 2 | 0.621 | 0.290 | — |
-| EFRGP01_01_crop06 | 2 | 1.000 | 0.259 | — |
-| EFRGP01_01_crop07 | 2 | 1.000 | 0.255 | — |
+| EFRGP01_00_crop02 | 2 | 1.000 | 0.367 | 0.947 |
+| EFRGP01_00_crop03 | 2 | 1.000 | 0.468 | 0.947 |
+| EFRGP01_00_crop04 | 2 | 1.000 | 0.275 | 0.913 |
+| EFRGP01_00_crop05 | 2 | 0.667 | 0.247 | 0.692 |
+| EFRGP01_00_crop06 | 2 | 1.000 | 0.306 | 0.882 |
+| EFRGP01_00_crop07 | 2 | 1.000 | 0.274 | 0.941 |
+| EFRGP01_01_crop02 | 2 | 1.000 | 0.430 | 0.895 |
+| EFRGP01_01_crop03 | 2 | 0.973 | 0.480 | 1.000 |
+| EFRGP01_01_crop04 | 2 | 1.000 | 0.261 | 0.816 |
+| EFRGP01_01_crop05 | 2 | 0.621 | 0.290 | 0.783 |
+| EFRGP01_01_crop06 | 2 | 1.000 | 0.259 | 0.824 |
+| EFRGP01_01_crop07 | 2 | 1.000 | 0.255 | 0.867 |

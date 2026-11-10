@@ -774,3 +774,12 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   - pooled F1@0.50 0.989: TP 2767, FP 18, FN 41 (v3: 2765 / 25 / 43).
   - Grains: valid grains split 5 → 0; unseeded 27 → 27.
   - **Criterion 1 passes.** Run continues with f = 2.0, 1.4, 0.7 (`C:\BA_TOS_DATA\runs\v32_dev_H1.log`).
+- H1, f = 2.0 complete (12/12; sel, seed-ignore, no filter): crop-macro F1@0.50 **0.876** ± 0.086 (min 0.692,
+  00_crop05; 7 crops < 0.90). v3 0.938, v3.1 0.326. Threshold 0.933 → **criterion 2 FAILS; H1 does not hold.**
+  - Pooled: TP 188, FP 50, FN 0 (v3 188/21/0; v3.1 188/819/0).
+  - All 188 valid grains are seeded. 30 are split (2.2 % → 15 % median per crop); v3 14, v3.1 184.
+  - 19 markers lie in background.
+  - Every FP is a sub-filter fragment: with the own filter (500 s³) H1 = v3 = 1.000.
+  - Cause: the EDT-Otsu basins (seeds NMS 6 s = 0.6 r_granulo) put 2–3 basins in one large grain, so a grain keeps
+    one marker per basin. Reported, not tuned (pre-registered order: next is H2).
+  - H1 continues at f = 1.4 / 0.7 for the full report; those prefixes are shared with H2/H3.
