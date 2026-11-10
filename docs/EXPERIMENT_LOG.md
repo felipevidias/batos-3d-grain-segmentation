@@ -791,3 +791,10 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   F1@0.75 0.977 (v3 0.974). Split median 0.5 % → 0.2 %.
 - **H1 verdict: does not hold** (passes f = 0.7 and 1.0; fails f = 1.4 and 2.0). Tables: `results/v32_dev/tables.md`.
   Next per pre-registered order: H2 (NMS 0.8 r_granulo on the final marker list), reusing the same prefixes.
+- H2 (NMS 0.8 r_granulo on the final list), all factors 12/12. sel, seed-ignore, no filter:
+  - f = 0.7: 0.977 (pass). f = 1.0: 0.991 (pass; pooled TP 2767 / FP 18 / FN 41, same as H1).
+  - f = 1.4: **0.951** (min 0.755; pooled FP 72 vs v3 9) → fails. f = 2.0: **0.441** (pooled TP 188 / FP 492 / FN 0;
+    3.98 markers per valid grain, 100 % of valid grains split) → fails.
+  - The radius is too small for these grains: markers 0.8 r_granulo apart still fit several per grain, so H2
+    removes far fewer v3.1 duplicates than H1.
+  - **H2 does not hold.** Next per the pre-registered order: H3 (merge touching exclusive supports ≤ V_g).
