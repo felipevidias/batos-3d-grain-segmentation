@@ -36,12 +36,13 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 from batos_fullvolume.tiling import (Tile, check_freeze, make_grid, process_tile,  # noqa: E402
-                                     select_tiles)
+                                     select_tiles, specimen_selection)
 
 CFG = yaml.safe_load((REPO / "configs" / "fullvolume_v3.yaml").read_text(encoding="utf-8"))
 GRAY = Path(CFG["volume"]["gray"])
 GT = Path(CFG["volume"]["gt"])
 ROI = Path(CFG["volume"]["roi_labels_inside"])
+ROI_OUT = ROI.with_name(ROI.name.replace("Inside", "Outside"))
 ROOT = Path(CFG["out_root"])
 CORE = int(CFG["tiling"]["core"])
 
@@ -102,7 +103,9 @@ def run_dir(name: str) -> Path:
 
 
 def load_tiles(name: str) -> tuple[list[Tile], dict]:
+    global CORE
     cfg = json.loads((run_dir(name) / "run_config.json").read_text(encoding="utf-8"))
+    CORE = int(cfg["core"])
     tiles = [Tile(t["tile_id"], t["iz"], t["iy"], t["ix"], tuple(map(tuple, t["core"])), tuple(map(tuple, t["pad"])))
              for t in cfg["tiles"]]
     return tiles, cfg
@@ -216,26 +219,40 @@ def write_manifest(name: str, tiles: list[Tile]) -> pd.DataFrame:
 
 
 def cmd_run(a) -> int:
+    global CORE
+    CORE = int(a.core)
     cfg_method = check_freeze()
     sc = load_scale()
     halo = int(sc["halo"])
     shape = vol_shape()
     grid = make_grid(shape, CORE, halo)
-    tiles = select_tiles(grid, shape, CORE, a.block, a.tiles)
     out = run_dir(a.name)
     (out / "tiles").mkdir(parents=True, exist_ok=True)
+    sel_info = None
+    if a.block == "specimen":
+        tiles, sel_info, spec = specimen_selection(GRAY, grid)
+        tifffile.imwrite(out / "specimen_mask_step8.tif", spec.astype(np.uint8), compression="zlib")
+        log(f"specimen selection (GT-free): {sel_info}")
+    else:
+        tiles = select_tiles(grid, shape, CORE, a.block, a.tiles)
     rc_path = out / "run_config.json"
     run_cfg = {"name": a.name, "block": a.block, "halo": halo, "core": CORE, "volume_shape": list(shape),
+               "tile_selection": sel_info,
                "r_granulo_central": sc["r_granulo"], "method_tag": cfg_method["git_tag"],
                "method_code_commit": cfg_method["git_commit_code"], "fullvolume_config": CFG,
                "tiles": [{"tile_id": t.tile_id, "iz": t.iz, "iy": t.iy, "ix": t.ix, "core": t.core, "pad": t.pad}
                          for t in tiles]}
     if rc_path.exists():
         old = json.loads(rc_path.read_text(encoding="utf-8"))
-        if [t["tile_id"] for t in old["tiles"]] != [t.tile_id for t in tiles] or old["halo"] != halo:
+        if ([t["tile_id"] for t in old["tiles"]] != [t.tile_id for t in tiles] or old["halo"] != halo
+                or int(old["core"]) != CORE):
             raise RuntimeError(f"{rc_path} exists with a different tile set / halo; use another --name")
     else:
         rc_path.write_text(json.dumps(run_cfg, indent=1, default=list), encoding="utf-8")
+    if a.dry_run:
+        log(f"dry run: {len(tiles)} tiles, core {CORE}, halo {halo}, padded <= {CORE + 2 * halo}^3; "
+            f"first {[t.tile_id for t in tiles[:3]]} last {[t.tile_id for t in tiles[-3:]]}")
+        return 0
     sessions = out / "sessions.jsonl"
     sess = {"start": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "command": " ".join([Path(sys.executable).name, *sys.argv]), "git": git_commit(),
@@ -324,10 +341,10 @@ def gt_stats() -> pd.DataFrame:
     return df
 
 
-def roi_inside() -> np.ndarray:
-    vals = [int(x) for x in ROI.read_text(encoding="utf-8").split() if x.strip().lstrip("-").isdigit()]
+def roi_inside(path: Path = ROI) -> np.ndarray:
+    vals = [int(x) for x in path.read_text(encoding="utf-8").split() if x.strip().lstrip("-").isdigit()]
     if not vals:
-        raise RuntimeError(f"no labels read from {ROI}")
+        raise RuntimeError(f"no labels read from {path}")
     return np.unique(np.asarray(vals, np.int64))
 
 
@@ -342,20 +359,30 @@ def cmd_evaluate(a) -> int:
     tiles, cfg = load_tiles(a.name)
     sdir = run_dir(a.name) / f"stitch_{a.route}{a.variant}"
     meta = json.loads((sdir / "labels_meta.json").read_text(encoding="utf-8"))
-    edir = run_dir(a.name) / f"eval_{a.route}{a.variant}"
+    edir = run_dir(a.name) / f"eval_{a.route}{a.variant}{'' if a.gt_set == 'inside' else '_' + a.gt_set}"
     edir.mkdir(exist_ok=True)
     gs = gt_stats()
     roi = roi_inside()
+    roi_out = roi_inside(ROI_OUT)
     core_box = [(min(t.core[k][0] for t in tiles), max(t.core[k][1] for t in tiles)) for k in range(3)]
-    in_box = ((gs.z0 >= core_box[0][0]) & (gs.z1 <= core_box[0][1]) & (gs.y0 >= core_box[1][0]) &
-              (gs.y1 <= core_box[1][1]) & (gs.x0 >= core_box[2][0]) & (gs.x1 <= core_box[2][1]))
-    gs["in_roi"] = gs.gt_label.isin(roi)
+    sel_cells = {(t.iz, t.iy, t.ix) for t in tiles}
+    in_box = pd.Series([all((i, j, k) in sel_cells for i in range(z0 // CORE, (z1 - 1) // CORE + 1)
+                            for j in range(y0 // CORE, (y1 - 1) // CORE + 1)
+                            for k in range(x0 // CORE, (x1 - 1) // CORE + 1))
+                        for z0, z1, y0, y1, x0, x1 in zip(gs.z0, gs.z1, gs.y0, gs.y1, gs.x0, gs.x1)],
+                       index=gs.index)  # GT bbox inside the union of the selected tile cores
+    gs["in_inside_list"] = gs.gt_label.isin(roi)
+    gs["in_outside_list"] = gs.gt_label.isin(roi_out)
+    gs["in_roi"] = gs.in_inside_list if a.gt_set == "inside" else (gs.in_inside_list | gs.in_outside_list)
     gs["valid"] = gs.in_roi & (gs.voxels >= 1000) & in_box
     valid_ids = np.sort(gs.loc[gs.valid, "gt_label"].to_numpy(np.int64))
     counts = {"gt_labels_full_volume": int(len(gs)), "gt_max_label": int(gs.gt_label.max()),
               "roi_list_labels": int(len(roi)), "roi_labels_present": int(gs.in_roi.sum()),
               "roi_present_ge1000": int((gs.in_roi & (gs.voxels >= 1000)).sum()),
-              "gt_fully_in_core_box": int(in_box.sum()), "valid_gt": int(len(valid_ids)), "core_box": core_box}
+              "gt_set": a.gt_set, "labels_inside_list": int(gs.in_inside_list.sum()),
+              "labels_outside_list": int(gs.in_outside_list.sum()),
+              "labels_unlisted": int((~gs.in_inside_list & ~gs.in_outside_list).sum()),
+              "gt_fully_in_selected_cores": int(in_box.sum()), "valid_gt": int(len(valid_ids)), "core_box": core_box}
     log(f"GT counts: {counts}")
     L = np.load(sdir / "labels.npy", mmap_mode="r")
     gt = tifffile.memmap(GT, mode="r")
@@ -466,7 +493,8 @@ def cmd_evaluate(a) -> int:
            "eval_seconds": round(time.time() - t0, 1), "gate_triggered_tiles": int((man.gate_triggered == True).sum()),  # noqa: E712
            "r_granulo_tiles": man.r_granulo.describe().to_dict(), "r_granulo_central": cfg["r_granulo_central"],
            "halo": cfg["halo"]}
-    out = {"run": a.name, "route": a.route, "variant": a.variant, "counts": counts, "resources": res, "stitch": meta,
+    out = {"run": a.name, "route": a.route, "variant": a.variant, "gt_set": a.gt_set, "core": CORE,
+           "counts": counts, "resources": res, "stitch": meta,
            "metrics": rows, "seam": seam, "git": git_commit(),
            "timestamp": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
     (edir / "metrics.json").write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
@@ -483,8 +511,10 @@ def main(argv=None) -> int:
     s.add_argument("--force", action="store_true")
     r = sub.add_parser("run")
     r.add_argument("--name", required=True)
-    r.add_argument("--block", help="center<k> or all")
+    r.add_argument("--block", help="center<k> | all | specimen (GT-free specimen-touching tiles)")
+    r.add_argument("--core", type=int, default=CORE, help="tile core edge (padded tile = core + 2 halo)")
     r.add_argument("--tiles", nargs="*")
+    r.add_argument("--dry-run", action="store_true", help="select tiles, write run_config.json, run nothing")
     r.add_argument("--workers", type=int, default=3)
     r.add_argument("--mem-budget-gb", type=float, default=float(CFG["resources"]["mem_budget_gb"]))
     r.add_argument("--initial-peak-mb", type=float, default=6000.0,
@@ -503,6 +533,8 @@ def main(argv=None) -> int:
     e.add_argument("--route", default=CFG["stitch"]["route"])
     e.add_argument("--slab", type=int, default=8)
     e.add_argument("--variant", default="", help="suffix of the stitch/eval dirs, e.g. _rescue")
+    e.add_argument("--gt-set", choices=["inside", "listed"], default="inside",
+                   help="inside = labelsInside (spec); listed = labelsInside + labelsOutside")
     a = ap.parse_args(argv)
     if getattr(a, "workers", 1) > int(CFG["resources"]["max_workers"]):
         raise SystemExit(f"--workers > {CFG['resources']['max_workers']} not allowed")

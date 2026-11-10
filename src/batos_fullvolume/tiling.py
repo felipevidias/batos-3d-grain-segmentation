@@ -97,6 +97,40 @@ def select_tiles(tiles: list[Tile], shape, core: int, block: str | None, ids: li
     return sel
 
 
+def specimen_selection(gray_path: Path, tiles: list[Tile], step: int = 8, margin: int = 1) -> tuple[list[Tile], dict, np.ndarray]:
+    """GT-free specimen-touching tile selection (decided 2026-11-10, Phase 5g full run).
+
+    Coarse greyscale (every `step`-th voxel per axis) -> Otsu foreground -> closing (ball radius 2 coarse voxels)
+    -> largest 6-connected component -> 3D fill holes -> dilation by `margin` coarse voxels (safety margin of
+    margin*step voxels). A tile is selected when its CORE contains at least one coarse specimen voxel.
+    Only the greyscale is read; the GT is never used here."""
+    from skimage.filters import threshold_otsu
+    from skimage.morphology import ball
+    g = tifffile.memmap(gray_path, mode="r")
+    small = np.ascontiguousarray(g[::step, ::step, ::step])
+    thr = float(threshold_otsu(small))
+    fg = ndi.binary_closing(small > thr, structure=ball(2))
+    lab, n = ndi.label(fg)
+    if n == 0:
+        raise RuntimeError("specimen selection: empty Otsu foreground")
+    cnt = np.bincount(lab.ravel())
+    cnt[0] = 0
+    spec = ndi.binary_fill_holes(lab == int(cnt.argmax()))
+    if margin:
+        spec = ndi.binary_dilation(spec, iterations=margin)
+    sel = []
+    for t in tiles:
+        sl = tuple(slice(a // step, -(-b // step)) for a, b in t.core)
+        if spec[sl].any():
+            sel.append(t)
+    zz, yy, xx = np.nonzero(spec)
+    info = {"method": "coarse Otsu specimen mask (GT-free)", "step": step, "margin_coarse_voxels": margin,
+            "otsu_threshold": thr, "coarse_shape": list(small.shape), "specimen_fraction_coarse": float(spec.mean()),
+            "specimen_bbox_zyx": [[int(v.min()) * step, (int(v.max()) + 1) * step] for v in (zz, yy, xx)],
+            "n_selected": len(sel), "n_grid": len(tiles)}
+    return sel, info, spec
+
+
 def _log(msg: str) -> None:
     print(f"[{dt.datetime.now():%H:%M:%S}] {msg}", flush=True)
 

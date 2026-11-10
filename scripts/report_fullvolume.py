@@ -36,7 +36,7 @@ def upsert(path: Path, rows: list[dict], keys: list[str]) -> None:
     new.to_csv(path, index=False)
 
 
-def heatmap(pt: pd.DataFrame, out: Path, title: str) -> None:
+def heatmap(pt: pd.DataFrame, out: Path, title: str, core: int = 200) -> None:
     zs = sorted(pt.iz.unique())
     ys, xs = sorted(pt.iy.unique()), sorted(pt.ix.unique())
     n = len(zs)
@@ -65,7 +65,7 @@ def heatmap(pt: pd.DataFrame, out: Path, title: str) -> None:
                     ax.text(j, i, "no GT", ha="center", va="center", fontsize=6, color="#6b6b6b")
         ax.set_xticks(range(len(xs)), [f"x{v}" for v in xs], fontsize=7)
         ax.set_yticks(range(len(ys)), [f"y{v}" for v in ys], fontsize=7)
-        ax.set_title(f"z-slab {z} (z {z * 200}-{z * 200 + 200})", fontsize=8)
+        ax.set_title(f"z-slab {z} (z {z * core}-{z * core + core})", fontsize=8)
         for s in ax.spines.values():
             s.set_visible(False)
         ax.tick_params(length=0)
@@ -84,26 +84,30 @@ def main(argv=None) -> int:
     ap.add_argument("--name", required=True)
     ap.add_argument("--route", default="BA-TOS_sel")
     ap.add_argument("--variant", default="", help="stitch/eval dir suffix, e.g. _rescue")
+    ap.add_argument("--gt-set", choices=["inside", "listed"], default="inside")
     a = ap.parse_args(argv)
-    edir = ROOT / a.name / f"eval_{a.route}{a.variant}"
-    res = REPO / "results" / "fullvolume" / f"{a.name}{a.variant}"
+    gsfx = "" if a.gt_set == "inside" else "_" + a.gt_set
+    edir = ROOT / a.name / f"eval_{a.route}{a.variant}{gsfx}"
+    res = REPO / "results" / "fullvolume" / f"{a.name}{a.variant}{gsfx}"
     res.mkdir(parents=True, exist_ok=True)
     for f in ("metrics.csv", "metrics.json", "per_tile.csv", "seam.json"):
         shutil.copy2(edir / f, res / f)
     shutil.copy2(ROOT / a.name / "tiles_manifest.csv", res / "tiles_manifest.csv")
     js = json.loads((edir / "metrics.json").read_text(encoding="utf-8"))
     pt = pd.read_csv(edir / "per_tile.csv")
-    heatmap(pt, res / "per_tile_f1_heatmap.png",
-            f"{a.name}{a.variant}: BA-TOS v3 tiled ({a.route}, seed-ignore, no size filter) - per-tile F1@0.50")
+    core = int(js.get("core", 200))
+    heatmap(pt, res / "per_tile_f1_heatmap.png", core=core, title=
+            f"{a.name}{a.variant}{gsfx}: BA-TOS v3 tiled ({a.route}, seed-ignore, no size filter) - per-tile F1@0.50")
     man = pd.read_csv(ROOT / a.name / "tiles_manifest.csv")
     r = js["resources"]
     rows = []
     for m in js["metrics"]:
-        rows.append({"experiment_id": f"fullvolume_{a.name}{a.variant}/EFRGP01_00", "method": a.route,
+        rows.append({"experiment_id": f"fullvolume_{a.name}{a.variant}{gsfx}/EFRGP01_00", "method": a.route,
                      "model": "batos-paper-v3-scalefree (tiled)", "volume": "EFRGP01_00",
                      "crop": f"{a.name} ({r['tiles']} tiles)", "device": "cpu (AMD Ryzen 7 5700X)",
                      "parameters": f"size_filter={m['size_filter']};eval=stream_eval:markers_dominant;"
-                                   f"valid=roi_inside+ge1000+in_core_box;core=200;halo={r['halo']};"
+                                   f"valid={'roi_inside' if a.gt_set == 'inside' else 'roi_inside+outside'}+ge1000+in_selected_cores;"
+                                   f"core={core};halo={r['halo']};"
                                    f"match_iou={js['stitch']['match_iou']};contested=core_authority;"
                                    f"orphan_rescue={js['stitch'].get('orphan_rescue', False)}",
                      "runtime_seconds": r["tile_seconds_sum"], "peak_memory_mb": r["tree_rss_peak_mb"],
