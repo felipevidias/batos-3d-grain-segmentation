@@ -66,21 +66,27 @@ def size_filter(pred: np.ndarray, min_size: int) -> np.ndarray:
     return np.where(np.isin(pred, keep), pred, 0).astype(pred.dtype)
 
 
-def run(crop_id: str, gray_path: Path, out: Path) -> dict:
-    """Writes out/{scale.json, canon/..., native/<route>_{labels,labels_own,markers}.tif, v3c_run.json, DONE|FAILED.json}."""
+def run(crop_id: str, gray_path: Path, out: Path, r_probe: float | None = None) -> dict:
+    """Writes out/{scale.json, canon/..., native/<route>_{labels,labels_own,markers}.tif, v3c_run.json, DONE|FAILED.json}.
+
+    r_probe: r_granulo already estimated on the 200^3 probe that defined this window (canonical field-of-view protocol);
+    when None, r_granulo is estimated on the crop itself (a 200^3 crop is its own probe)."""
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     gray = tifffile.imread(gray_path)
-    sc, _ = estimate(gray)
+    if r_probe is None:
+        sc, _ = estimate(gray)
+        sc = {k: v for k, v in sc.items() if not isinstance(v, dict)} | {"source": "estimated on this crop"}
+    else:
+        sc = {"r_granulo": float(r_probe), "source": "200^3 probe at the same centre (window defined from it)"}
     r = float(sc["r_granulo"])
     f = R_REF / r
-    (out / "scale.json").write_text(json.dumps({k: v for k, v in sc.items() if not isinstance(v, dict)}, indent=1),
-                                    encoding="utf-8")
+    (out / "scale.json").write_text(json.dumps(sc, indent=1), encoding="utf-8")
     cshape = canonical_shape(gray.shape, f)
     rec = {"crop_id": crop_id, "method": "v3c", "gray": str(gray_path), "git": git_state(),
            "timestamp": dt.datetime.now().astimezone().isoformat(timespec="seconds"), "r_granulo": r, "f": f,
            "native_shape": list(gray.shape), "canonical_shape": list(cshape), "size_filter_canonical": SIZE_FILTER,
-           "gt_used": False}
+           "scale_source": sc["source"], "gt_used": False}
     cdir = out / "canon"
     cdir.mkdir(exist_ok=True)
     if cshape == gray.shape:

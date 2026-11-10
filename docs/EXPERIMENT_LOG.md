@@ -866,3 +866,11 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   marker positions preserved).
 - Known risk, stated in advance: synthetic crops are 200³, so the canonical crop is ~95–100³ at f = 2.0, below the
   128³ where the frozen method already degrades (SIBGRAPI Table V: 0.851). Test EO crops (r 15) become 133³.
+- Protocol clarification (user, before any v3c result): canonical field of view held at 200³. The first run was
+  stopped during the identity crop (nothing evaluated).
+  - Amendment 1 in `docs/V3C_CANONICAL.md`. `scripts/make_synthetic_canon.py` re-cuts 36 synthetic windows of side
+    round(200 · r_probe / 10): 140³ (0.7), 280³ (1.4), 400³ / 420³ (2.0).
+  - Checks: the S = 200 re-cut equals the 5e crop (SHA-256); r_probe equals the 5e r_granulo on all 36.
+  - Valid GT (≥ 1000 canonical voxels) equals the dev counts per crop (e.g. crop02: 265 at every factor), so the
+    windows cover the same physical grains.
+  - v3c uses r_probe as its scale input; the canonical crops are all 200³.

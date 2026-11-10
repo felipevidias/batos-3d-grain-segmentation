@@ -67,3 +67,33 @@ Both must hold. If they do:
 - report per specimen (EOR/EOS emphasised) and the boundary cost.
 
 If not: report and stop. Test set 2 stays unseen.
+
+## Amendment 1 (2026-11-10, user protocol clarification; before any v3c result)
+
+The canonical **field of view** is held at 200³, so the synthetic comparison isolates grain scale from crop extent.
+
+**Synthetic windows** (`scripts/make_synthetic_canon.py`, `data/metadata/crops_synth_canon.json`):
+- The probe is the existing 200³ synthetic crop at the same centre. Its r_granulo is recomputed and must equal the
+  5e record.
+- Native side S = round(200 · r_probe / 10), re-cut from the full volume with the same transform as
+  `make_synthetic_scale.py`. The S = 200 case is checked to reproduce the 5e crop exactly.
+- Native sides: f = 0.7 → 140 (r 7); 1.4 → 280 (r 14); 2.0 → 400 (r 20, 10 crops) or 420 (r 21, 2 crops).
+  - The user's note gave 143 for 0.7. The stated rule round(200 · r / 10) with r = 7 gives 140, which maps to exactly
+    200 at f = 10/7, so 140 is used.
+- Every canonical crop is therefore exactly 200³.
+
+**Scale input.** v3c uses r_probe as its scale input (one estimate per window). This keeps the canonical side exactly
+200 instead of re-estimating on the larger window. For the dev crops the crop is its own probe.
+
+**Valid GT.** ≥ round(1000 · (r_probe / 10)³) native voxels, i.e. 1000 at canonical scale (8 000 at r = 20, 9 261 at
+r = 21, 343 at r = 7, 2 744 at r = 14). Not touching a face. Evaluation stays in native space against native GT.
+
+**References for the synthetic factors.** v3 and fixflat have no runs on these windows. Their 5e numbers (200³ native
+windows) are shown for reference only, and the boundary cost against v3 is computed only at f = 1.0 (same window). The
+acceptance thresholds are unchanged.
+
+**Test set 2 (if v3c passes).**
+- Per test-2 crop, r_granulo is estimated on the 200³ probe.
+- v3c then runs on a re-cut native window of side round(200 · r / 10) at the same centre. The sizes used are reported.
+- v3 runs on the 200³ probe (its own protocol).
+- Both are evaluated against their own window's GT.

@@ -1,0 +1,1129 @@
+{
+ "schema_version": 1,
+ "created": "2026-11-10",
+ "description": "Phase 5i (protocol clarification): synthetic scale crops with a canonical 200^3 field of view.\n\nFor each dev crop and synthetic factor F in {0.7, 1.4, 2.0} (grains scaled by F, as in make_synthetic_scale.py):\n  probe     = the existing 200^3 synthetic crop at the same centre (crops_synth_scale.json);\n              r_probe = its r_granulo (batos_v3.scale), recomputed here and checked against the 5e record\n  native S  = round(200 * r_probe / 10)          (so that S * 10 / r_probe = 200 canonical voxels)\n  window    = the full EFRGP01_00/01 volumes resampled by F about the dev crop centre, central S^3:\n              output voxel o <- source c + (o - (S - 1) / 2) / F   (grey: linear, rounded uint16; labels: nearest)\n              (identical transform to make_synthetic_scale.py; S = 200 reproduces the 5e crop exactly: checked)\n  valid GT  = >= round(1000 * (r_probe / 10)^3) native voxels (= 1000 at canonical scale), not touching a face.\nGT is not used to define any window. Outputs: C:\\BA_TOS_DATA\\crops_synth_canon\\x<F>\\<crop_id>\\{gray,labels}.tif,\ndata/metadata/crops_synth_canon.json, data/metadata/crops_manifest_synth_canon.csv.\n",
+ "factors": [
+  0.7,
+  1.4,
+  2.0
+ ],
+ "crop_convention": "zyx",
+ "crops": [
+  {
+   "crop_id": "EFRGP01_00_crop02_x0p7_canon",
+   "dev_crop_id": "EFRGP01_00_crop02",
+   "probe_crop_id": "EFRGP01_00_crop02_x0p7",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    899.5,
+    699.5
+   ],
+   "source_box_zyx": [
+    [
+     299,
+     799,
+     599
+    ],
+    [
+     501,
+     1001,
+     801
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop02_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop02_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_00_crop02_x1p4_canon",
+   "dev_crop_id": "EFRGP01_00_crop02",
+   "probe_crop_id": "EFRGP01_00_crop02_x1p4",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    899.5,
+    699.5
+   ],
+   "source_box_zyx": [
+    [
+     298,
+     798,
+     598
+    ],
+    [
+     502,
+     1002,
+     802
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop02_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop02_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_00_crop02_x2_canon",
+   "dev_crop_id": "EFRGP01_00_crop02",
+   "probe_crop_id": "EFRGP01_00_crop02_x2",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    899.5,
+    699.5
+   ],
+   "source_box_zyx": [
+    [
+     298,
+     798,
+     598
+    ],
+    [
+     502,
+     1002,
+     802
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop02_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop02_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_00_crop03_x0p7_canon",
+   "dev_crop_id": "EFRGP01_00_crop03",
+   "probe_crop_id": "EFRGP01_00_crop03_x0p7",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    699.5,
+    999.5
+   ],
+   "source_box_zyx": [
+    [
+     299,
+     599,
+     899
+    ],
+    [
+     501,
+     801,
+     1101
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop03_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop03_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_00_crop03_x1p4_canon",
+   "dev_crop_id": "EFRGP01_00_crop03",
+   "probe_crop_id": "EFRGP01_00_crop03_x1p4",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    699.5,
+    999.5
+   ],
+   "source_box_zyx": [
+    [
+     298,
+     598,
+     898
+    ],
+    [
+     502,
+     802,
+     1102
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop03_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop03_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_00_crop03_x2_canon",
+   "dev_crop_id": "EFRGP01_00_crop03",
+   "probe_crop_id": "EFRGP01_00_crop03_x2",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 21.0,
+   "native_side": 420,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    699.5,
+    999.5
+   ],
+   "source_box_zyx": [
+    [
+     293,
+     593,
+     893
+    ],
+    [
+     507,
+     807,
+     1107
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop03_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop03_x2_canon\\labels.tif",
+   "min_gt_voxels": 9261
+  },
+  {
+   "crop_id": "EFRGP01_00_crop04_x0p7_canon",
+   "dev_crop_id": "EFRGP01_00_crop04",
+   "probe_crop_id": "EFRGP01_00_crop04_x0p7",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    599.5,
+    599.5
+   ],
+   "source_box_zyx": [
+    [
+     699,
+     499,
+     499
+    ],
+    [
+     901,
+     701,
+     701
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop04_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop04_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_00_crop04_x1p4_canon",
+   "dev_crop_id": "EFRGP01_00_crop04",
+   "probe_crop_id": "EFRGP01_00_crop04_x1p4",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    599.5,
+    599.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     498,
+     498
+    ],
+    [
+     902,
+     702,
+     702
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop04_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop04_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_00_crop04_x2_canon",
+   "dev_crop_id": "EFRGP01_00_crop04",
+   "probe_crop_id": "EFRGP01_00_crop04_x2",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    599.5,
+    599.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     498,
+     498
+    ],
+    [
+     902,
+     702,
+     702
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop04_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop04_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_00_crop05_x0p7_canon",
+   "dev_crop_id": "EFRGP01_00_crop05",
+   "probe_crop_id": "EFRGP01_00_crop05_x0p7",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    999.5,
+    899.5
+   ],
+   "source_box_zyx": [
+    [
+     699,
+     899,
+     799
+    ],
+    [
+     901,
+     1101,
+     1001
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop05_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop05_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_00_crop05_x1p4_canon",
+   "dev_crop_id": "EFRGP01_00_crop05",
+   "probe_crop_id": "EFRGP01_00_crop05_x1p4",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    999.5,
+    899.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     898,
+     798
+    ],
+    [
+     902,
+     1102,
+     1002
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop05_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop05_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_00_crop05_x2_canon",
+   "dev_crop_id": "EFRGP01_00_crop05",
+   "probe_crop_id": "EFRGP01_00_crop05_x2",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    999.5,
+    899.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     898,
+     798
+    ],
+    [
+     902,
+     1102,
+     1002
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop05_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop05_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_00_crop06_x0p7_canon",
+   "dev_crop_id": "EFRGP01_00_crop06",
+   "probe_crop_id": "EFRGP01_00_crop06_x0p7",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    749.5,
+    449.5
+   ],
+   "source_box_zyx": [
+    [
+     499,
+     649,
+     349
+    ],
+    [
+     701,
+     851,
+     551
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop06_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop06_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_00_crop06_x1p4_canon",
+   "dev_crop_id": "EFRGP01_00_crop06",
+   "probe_crop_id": "EFRGP01_00_crop06_x1p4",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    749.5,
+    449.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     648,
+     348
+    ],
+    [
+     702,
+     852,
+     552
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop06_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop06_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_00_crop06_x2_canon",
+   "dev_crop_id": "EFRGP01_00_crop06",
+   "probe_crop_id": "EFRGP01_00_crop06_x2",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    749.5,
+    449.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     648,
+     348
+    ],
+    [
+     702,
+     852,
+     552
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop06_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop06_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_00_crop07_x0p7_canon",
+   "dev_crop_id": "EFRGP01_00_crop07",
+   "probe_crop_id": "EFRGP01_00_crop07_x0p7",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    499.5,
+    799.5
+   ],
+   "source_box_zyx": [
+    [
+     499,
+     399,
+     699
+    ],
+    [
+     701,
+     601,
+     901
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop07_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_00_crop07_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_00_crop07_x1p4_canon",
+   "dev_crop_id": "EFRGP01_00_crop07",
+   "probe_crop_id": "EFRGP01_00_crop07_x1p4",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    499.5,
+    799.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     398,
+     698
+    ],
+    [
+     702,
+     602,
+     902
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop07_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_00_crop07_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_00_crop07_x2_canon",
+   "dev_crop_id": "EFRGP01_00_crop07",
+   "probe_crop_id": "EFRGP01_00_crop07_x2",
+   "scan": "EFRGP01_00",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    499.5,
+    799.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     398,
+     698
+    ],
+    [
+     702,
+     602,
+     902
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop07_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_00_crop07_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_01_crop02_x0p7_canon",
+   "dev_crop_id": "EFRGP01_01_crop02",
+   "probe_crop_id": "EFRGP01_01_crop02_x0p7",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    899.5,
+    699.5
+   ],
+   "source_box_zyx": [
+    [
+     299,
+     799,
+     599
+    ],
+    [
+     501,
+     1001,
+     801
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop02_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop02_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_01_crop02_x1p4_canon",
+   "dev_crop_id": "EFRGP01_01_crop02",
+   "probe_crop_id": "EFRGP01_01_crop02_x1p4",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    899.5,
+    699.5
+   ],
+   "source_box_zyx": [
+    [
+     298,
+     798,
+     598
+    ],
+    [
+     502,
+     1002,
+     802
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop02_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop02_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_01_crop02_x2_canon",
+   "dev_crop_id": "EFRGP01_01_crop02",
+   "probe_crop_id": "EFRGP01_01_crop02_x2",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    899.5,
+    699.5
+   ],
+   "source_box_zyx": [
+    [
+     298,
+     798,
+     598
+    ],
+    [
+     502,
+     1002,
+     802
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop02_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop02_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_01_crop03_x0p7_canon",
+   "dev_crop_id": "EFRGP01_01_crop03",
+   "probe_crop_id": "EFRGP01_01_crop03_x0p7",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    699.5,
+    999.5
+   ],
+   "source_box_zyx": [
+    [
+     299,
+     599,
+     899
+    ],
+    [
+     501,
+     801,
+     1101
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop03_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop03_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_01_crop03_x1p4_canon",
+   "dev_crop_id": "EFRGP01_01_crop03",
+   "probe_crop_id": "EFRGP01_01_crop03_x1p4",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    699.5,
+    999.5
+   ],
+   "source_box_zyx": [
+    [
+     298,
+     598,
+     898
+    ],
+    [
+     502,
+     802,
+     1102
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop03_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop03_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_01_crop03_x2_canon",
+   "dev_crop_id": "EFRGP01_01_crop03",
+   "probe_crop_id": "EFRGP01_01_crop03_x2",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 21.0,
+   "native_side": 420,
+   "canonical_side": 200,
+   "centre_zyx": [
+    399.5,
+    699.5,
+    999.5
+   ],
+   "source_box_zyx": [
+    [
+     293,
+     593,
+     893
+    ],
+    [
+     507,
+     807,
+     1107
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop03_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop03_x2_canon\\labels.tif",
+   "min_gt_voxels": 9261
+  },
+  {
+   "crop_id": "EFRGP01_01_crop04_x0p7_canon",
+   "dev_crop_id": "EFRGP01_01_crop04",
+   "probe_crop_id": "EFRGP01_01_crop04_x0p7",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    599.5,
+    599.5
+   ],
+   "source_box_zyx": [
+    [
+     699,
+     499,
+     499
+    ],
+    [
+     901,
+     701,
+     701
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop04_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop04_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_01_crop04_x1p4_canon",
+   "dev_crop_id": "EFRGP01_01_crop04",
+   "probe_crop_id": "EFRGP01_01_crop04_x1p4",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    599.5,
+    599.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     498,
+     498
+    ],
+    [
+     902,
+     702,
+     702
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop04_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop04_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_01_crop04_x2_canon",
+   "dev_crop_id": "EFRGP01_01_crop04",
+   "probe_crop_id": "EFRGP01_01_crop04_x2",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    599.5,
+    599.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     498,
+     498
+    ],
+    [
+     902,
+     702,
+     702
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop04_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop04_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_01_crop05_x0p7_canon",
+   "dev_crop_id": "EFRGP01_01_crop05",
+   "probe_crop_id": "EFRGP01_01_crop05_x0p7",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    999.5,
+    899.5
+   ],
+   "source_box_zyx": [
+    [
+     699,
+     899,
+     799
+    ],
+    [
+     901,
+     1101,
+     1001
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop05_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop05_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_01_crop05_x1p4_canon",
+   "dev_crop_id": "EFRGP01_01_crop05",
+   "probe_crop_id": "EFRGP01_01_crop05_x1p4",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    999.5,
+    899.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     898,
+     798
+    ],
+    [
+     902,
+     1102,
+     1002
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop05_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop05_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_01_crop05_x2_canon",
+   "dev_crop_id": "EFRGP01_01_crop05",
+   "probe_crop_id": "EFRGP01_01_crop05_x2",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    799.5,
+    999.5,
+    899.5
+   ],
+   "source_box_zyx": [
+    [
+     698,
+     898,
+     798
+    ],
+    [
+     902,
+     1102,
+     1002
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop05_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop05_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_01_crop06_x0p7_canon",
+   "dev_crop_id": "EFRGP01_01_crop06",
+   "probe_crop_id": "EFRGP01_01_crop06_x0p7",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    749.5,
+    449.5
+   ],
+   "source_box_zyx": [
+    [
+     499,
+     649,
+     349
+    ],
+    [
+     701,
+     851,
+     551
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop06_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop06_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_01_crop06_x1p4_canon",
+   "dev_crop_id": "EFRGP01_01_crop06",
+   "probe_crop_id": "EFRGP01_01_crop06_x1p4",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    749.5,
+    449.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     648,
+     348
+    ],
+    [
+     702,
+     852,
+     552
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop06_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop06_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_01_crop06_x2_canon",
+   "dev_crop_id": "EFRGP01_01_crop06",
+   "probe_crop_id": "EFRGP01_01_crop06_x2",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    749.5,
+    449.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     648,
+     348
+    ],
+    [
+     702,
+     852,
+     552
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop06_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop06_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  },
+  {
+   "crop_id": "EFRGP01_01_crop07_x0p7_canon",
+   "dev_crop_id": "EFRGP01_01_crop07",
+   "probe_crop_id": "EFRGP01_01_crop07_x0p7",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 0.7,
+   "r_probe": 7.0,
+   "native_side": 140,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    499.5,
+    799.5
+   ],
+   "source_box_zyx": [
+    [
+     499,
+     399,
+     699
+    ],
+    [
+     701,
+     601,
+     901
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop07_x0p7_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x0p7\\EFRGP01_01_crop07_x0p7_canon\\labels.tif",
+   "min_gt_voxels": 343
+  },
+  {
+   "crop_id": "EFRGP01_01_crop07_x1p4_canon",
+   "dev_crop_id": "EFRGP01_01_crop07",
+   "probe_crop_id": "EFRGP01_01_crop07_x1p4",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 1.4,
+   "r_probe": 14.0,
+   "native_side": 280,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    499.5,
+    799.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     398,
+     698
+    ],
+    [
+     702,
+     602,
+     902
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop07_x1p4_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x1p4\\EFRGP01_01_crop07_x1p4_canon\\labels.tif",
+   "min_gt_voxels": 2744
+  },
+  {
+   "crop_id": "EFRGP01_01_crop07_x2_canon",
+   "dev_crop_id": "EFRGP01_01_crop07",
+   "probe_crop_id": "EFRGP01_01_crop07_x2",
+   "scan": "EFRGP01_01",
+   "specimen": "EFR",
+   "factor": 2.0,
+   "r_probe": 20.0,
+   "native_side": 400,
+   "canonical_side": 200,
+   "centre_zyx": [
+    599.5,
+    499.5,
+    799.5
+   ],
+   "source_box_zyx": [
+    [
+     498,
+     398,
+     698
+    ],
+    [
+     702,
+     602,
+     902
+    ]
+   ],
+   "gray_crop_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop07_x2_canon\\gray.tif",
+   "gt_path": "C:\\BA_TOS_DATA\\crops_synth_canon\\x2\\EFRGP01_01_crop07_x2_canon\\labels.tif",
+   "min_gt_voxels": 8000
+  }
+ ]
+}

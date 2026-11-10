@@ -43,6 +43,16 @@ def log(msg: str) -> None:
     print(f"[{dt.datetime.now():%H:%M:%S}] {msg}", flush=True)
 
 
+def canon_sets() -> dict[float, list[dict]]:
+    """f = 1.0: the 12 dev crops (200^3, own probe). Synthetic: canonical field-of-view windows (native side
+    round(200 r_probe / 10), valid GT >= round(1000 (r_probe/10)^3)), data/metadata/crops_synth_canon.json."""
+    sets = {1.0: crop_sets()[1.0]}
+    meta = json.loads((REPO / "data" / "metadata" / "crops_synth_canon.json").read_text(encoding="utf-8"))
+    for c in meta["crops"]:
+        sets.setdefault(float(c["factor"]), []).append(c)
+    return sets
+
+
 def run_dir(f: float, crop: str) -> Path:
     return ROOT / "runs" / f"x{f:g}" / crop
 
@@ -54,7 +64,7 @@ def ensure(f: float, c: dict) -> dict:
             return json.loads((out / name).read_text(encoding="utf-8"))
     if out.exists():
         shutil.rmtree(out)
-    rec = canonical.run(c["crop_id"], Path(c["gray_crop_path"]), out)
+    rec = canonical.run(c["crop_id"], Path(c["gray_crop_path"]), out, r_probe=c.get("r_probe"))
     cr = rec.get("canonical_run") or {}
     log(f"{c['crop_id']} v3c r {rec['r_granulo']:g} f {rec['f']:.3f} canon {rec['canonical_shape']} "
         f"gate {(cr.get('gate') or {}).get('gate_triggered')} markers {cr.get('tos_markers')} "
@@ -164,7 +174,7 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     ROOT.mkdir(parents=True, exist_ok=True)
     identity_check()
-    sets = crop_sets()
+    sets = canon_sets()
     for f in a.factors:
         crops = [c for c in sets[f] if not a.crops or c["dev_crop_id"] in a.crops]
         for i, c in enumerate(crops, 1):
