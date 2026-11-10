@@ -12,8 +12,19 @@ volume:
 tiling:
   core: 200
   # halo = 2 * r_granulo, r_granulo estimated ONCE (GT-free, batos_v3.scale.estimate) on the central 200^3 crop
-  # of the volume. A single halo keeps the grid regular and the halo known before any tile runs; frozen v3 still
-  # estimates its own r_granulo / s inside every padded tile (that is the method), and both are recorded.
+  # of the volume (r = 10 for EFRGP01_00 -> halo 20).
+  # FULL-VOLUME RULE (decided 2026-11-10): scale is a specimen property, estimated once per scan. Every tile uses
+  # the central r_granulo: the frozen scale stage still runs per tile (it also produces the tile specimen mask),
+  # then scale.json is rewritten with r_granulo = central r and openrec_radius = max(8, round(1.5 r)); the tile's
+  # own estimate is kept as scale_tile_estimate.json. Reason: on edge tiles (little specimen) the per-tile
+  # estimate is meaningless (t0_1_2: specimen 0.05 -> r 39, openrec radius 58; t0_1_3: r 2). Frozen files untouched.
+  scale_rule: per_scan
+  # Full run geometry (decided 2026-11-10): core 160 + halo 20 = 200^3 padded tiles (the frozen crop volume; with
+  # core 200 the fixed K = 3600 candidate pool is diluted 1.73x, see results/fullvolume/SMOKE_REPORT.md).
+  # Pass --core 160; the smoke test used core 200.
+  core_full_run: 160
+  # Tile set (full run): GT-free specimen-touching tiles (coarse Otsu specimen mask, step 8, 1-voxel margin);
+  # queue = padded specimen fraction >= 0.5 first (grid order), edge tiles last (decreasing fraction).
   halo_factor: 2.0
   central_crop: volume_center
   ownership: instance centroid (floor) inside the tile core

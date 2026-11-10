@@ -775,3 +775,19 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   so 240³ tiles get 0.58× the frozen candidate density (GT in merges 16 %; matches the dev K = 1800 result of 0.833).
   Not acted on. Option: padded tiles of 200³ (core 160 + halo 20), i.e. the frozen regime without a method change.
 - Full run NOT launched (waiting for the user). Report: `results/fullvolume/SMOKE_REPORT.md`.
+
+## 2026-11-10 — Phase 5g full run: first launch aborted; rules fixed (one scale per scan, filled tiles first)
+
+- The user chose core 160 + halo 20 (200³ padded tiles), specimen-touching tiles only, orphan rescue on.
+- GT-free tile selection: 277/810 tiles. Post-hoc check: all 29,361 GT labels (and all 9,278 labelsInside) lie
+  inside the selected cores.
+- GT counts resolved: 29,361 = 9,278 labelsInside (an inclined shear-band slab) + 14,935 labelsOutside + 5,148
+  unlisted boundary grains (membrane shell / end caps).
+- First launch (13:47) stalled. The queue started with the bottom-slab edge tiles, where the per-tile v3 scale
+  estimate was meaningless (t0_1_2: specimen 0.05, r 39, openrec radius 58 low-mem, more than 50 min in openrec;
+  t0_1_3: r 2). The memory gate held the other tiles behind it. The user stopped the run; orphaned stage processes
+  were killed. Outputs were archived to `C:\BA_TOS_DATA\runs\fullvolume\full_c160_aborted_pertile_scale` (not used).
+- User decision: **scale is a specimen property, estimated once per scan.** The central r_granulo (10) is written
+  into every tile's scale.json after the frozen scale stage, with openrec_radius 15; frozen files untouched. Queue:
+  padded specimen fraction ≥ 0.5 first (163 tiles), edge tiles last. Rules: `docs/FULLVOLUME_V3.md`; config
+  `tiling.scale_rule: per_scan`. The override was mock-tested (39 → 10, 58 → 15; other stages untouched).

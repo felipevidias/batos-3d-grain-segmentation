@@ -187,6 +187,40 @@ class StageGate:
         pl.run_tracked = gated
 
 
+def install_scale_rule(central: dict, log_note) -> None:
+    """Full-volume rule (decided 2026-11-10): scale is a specimen property, estimated ONCE per scan.
+
+    The frozen scale stage still runs on every padded tile (it also writes the tile's specimen.tif, which
+    v3 uses for its stage-03 threshold). Right after it, scale.json is rewritten with the per-scan
+    r_granulo of the central 200^3 crop and openrec_radius = max(8, round(1.5 r)) (the batos_v3.scale
+    formula); the tile's own estimate is kept as scale_tile_estimate.json. No frozen file is edited:
+    batos_v3.pipeline.run_tracked is wrapped in this process, like the stage gate."""
+    import batos_v3.pipeline as pl
+    orig = pl.run_tracked
+    r = float(central["r_granulo"])
+    r_out = int(r) if r.is_integer() else r
+
+    def wrapped(cmd, log_path):
+        rc, peak = orig(cmd, log_path)
+        c = [str(x) for x in cmd]
+        if rc == 0 and "-m" in c and c[c.index("-m") + 1] == "batos_v3.scale":
+            p = Path(c[c.index("--out-json") + 1])
+            own = json.loads(p.read_text(encoding="utf-8"))
+            p.with_name("scale_tile_estimate.json").write_text(json.dumps(own, indent=1), encoding="utf-8")
+            new = {**own, "r_granulo": r_out, "openrec_radius": int(max(8, round(1.5 * r))),
+                   "scale_rule": "per_scan", "scale_source": str(ROOT / "scale_central.json"),
+                   "tile_estimate": {k: own.get(k) for k in ("r0", "r_granulo", "openrec_radius",
+                                                              "specimen_fraction")}}
+            p.write_text(json.dumps(new, indent=1), encoding="utf-8")
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"\n[fullvolume] scale rule per_scan: r_granulo {own.get('r_granulo')} -> {r_out}, "
+                        f"openrec_radius {own.get('openrec_radius')} -> {new['openrec_radius']}\n")
+        return rc, peak
+    wrapped._gated = getattr(orig, "_gated", False)
+    pl.run_tracked = wrapped
+    log_note(f"scale rule per_scan installed: r_granulo {r_out}, openrec_radius {int(max(8, round(1.5 * r)))}")
+
+
 def seen_stage_peaks(out: Path) -> dict:
     seen = {}
     for p in (out / "tiles").glob("*/tile.json"):
@@ -232,12 +266,18 @@ def cmd_run(a) -> int:
     if a.block == "specimen":
         tiles, sel_info, spec = specimen_selection(GRAY, grid)
         tifffile.imwrite(out / "specimen_mask_step8.tif", spec.astype(np.uint8), compression="zlib")
+        fr = sel_info["padded_specimen_fraction"]
+        # queue: specimen-filled tiles (padded coarse fraction >= 0.5) first in grid order, edge tiles last
+        # by decreasing fraction (decided 2026-11-10)
+        tiles = sorted(tiles, key=lambda t: (fr[t.tile_id] < 0.5, -fr[t.tile_id] if fr[t.tile_id] < 0.5 else 0,
+                                             t.iz, t.iy, t.ix))
+        sel_info["n_filled_ge050"] = int(sum(v >= 0.5 for v in fr.values()))
         log(f"specimen selection (GT-free): {sel_info}")
     else:
         tiles = select_tiles(grid, shape, CORE, a.block, a.tiles)
     rc_path = out / "run_config.json"
     run_cfg = {"name": a.name, "block": a.block, "halo": halo, "core": CORE, "volume_shape": list(shape),
-               "tile_selection": sel_info,
+               "tile_selection": sel_info, "scale_rule": a.scale_rule,
                "r_granulo_central": sc["r_granulo"], "method_tag": cfg_method["git_tag"],
                "method_code_commit": cfg_method["git_commit_code"], "fullvolume_config": CFG,
                "tiles": [{"tile_id": t.tile_id, "iz": t.iz, "iy": t.iy, "ix": t.ix, "core": t.core, "pad": t.pad}
@@ -265,8 +305,14 @@ def cmd_run(a) -> int:
     lock = threading.Lock()
     running: dict[str, threading.Thread] = {}
     errors: list[str] = []
-    gate = StageGate(a.mem_budget_gb * 1024 - a.driver_overhead_mb, a.initial_peak_mb, seen_stage_peaks(out))
+    seen = seen_stage_peaks(out)
+    for prev in a.seed_peaks_from or []:  # measured stage peaks of an earlier run (larger tiles = safe side)
+        for k, v in seen_stage_peaks(run_dir(prev)).items():
+            seen[k] = max(seen.get(k, 0.0), v)
+    gate = StageGate(a.mem_budget_gb * 1024 - a.driver_overhead_mb, a.initial_peak_mb, seen)
     gate.install()
+    if a.scale_rule == "per_scan":
+        install_scale_rule(sc, log)
     log(f"stage gate: budget {gate.budget:.0f} MB for stage subprocesses; known stage peaks "
         f"{ {k: round(v) for k, v in gate.peak.items()} }")
     sess["stage_gate_budget_mb"] = gate.budget
@@ -515,6 +561,10 @@ def main(argv=None) -> int:
     r.add_argument("--core", type=int, default=CORE, help="tile core edge (padded tile = core + 2 halo)")
     r.add_argument("--tiles", nargs="*")
     r.add_argument("--dry-run", action="store_true", help="select tiles, write run_config.json, run nothing")
+    r.add_argument("--scale-rule", choices=["per_scan", "per_tile"],
+                   default=CFG["tiling"].get("scale_rule", "per_scan"),
+                   help="per_scan = central r_granulo for every tile (full-volume rule); per_tile = v3 as is")
+    r.add_argument("--seed-peaks-from", nargs="*", help="earlier run names whose measured stage peaks seed the gate")
     r.add_argument("--workers", type=int, default=3)
     r.add_argument("--mem-budget-gb", type=float, default=float(CFG["resources"]["mem_budget_gb"]))
     r.add_argument("--initial-peak-mb", type=float, default=6000.0,

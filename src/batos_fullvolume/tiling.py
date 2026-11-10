@@ -123,11 +123,13 @@ def specimen_selection(gray_path: Path, tiles: list[Tile], step: int = 8, margin
         sl = tuple(slice(a // step, -(-b // step)) for a, b in t.core)
         if spec[sl].any():
             sel.append(t)
+    frac = {t.tile_id: float(spec[tuple(slice(a // step, -(-b // step)) for a, b in t.pad)].mean())
+            for t in sel}  # coarse specimen fraction of the PADDED tile (queue ordering only)
     zz, yy, xx = np.nonzero(spec)
     info = {"method": "coarse Otsu specimen mask (GT-free)", "step": step, "margin_coarse_voxels": margin,
             "otsu_threshold": thr, "coarse_shape": list(small.shape), "specimen_fraction_coarse": float(spec.mean()),
             "specimen_bbox_zyx": [[int(v.min()) * step, (int(v.max()) + 1) * step] for v in (zz, yy, xx)],
-            "n_selected": len(sel), "n_grid": len(tiles)}
+            "n_selected": len(sel), "n_grid": len(tiles), "padded_specimen_fraction": frac}
     return sel, info, spec
 
 
@@ -191,6 +193,11 @@ def process_tile(tile: Tile, gray_path: Path, out_root: Path, halo: int, routes=
     except StageError as e:  # recorded as an empty tile (no tuning, no retry), as in run_test_v3
         rec |= {"status": "FAILED", "error": str(e), "v3_seconds": round(time.time() - t1, 1)}
         run_json = out / "v3" / "v3_run.json"
+        own = out / "v3" / "00_scale" / "scale_tile_estimate.json"
+        if own.exists():  # per-scan scale rule: the tile's own (unused) estimate, for the record
+            o = json.loads(own.read_text(encoding="utf-8"))
+            rec |= {"scale_rule": "per_scan", "tile_r_granulo_own": o.get("r_granulo"),
+                    "tile_r0_own": o.get("r0"), "tile_openrec_radius_own": o.get("openrec_radius")}
         steps_log = out / "v3" / "commands.log"
         rec["log_tail"] = steps_log.read_text(encoding="utf-8", errors="replace")[-1500:] if steps_log.exists() else ""
         if run_json.exists():
