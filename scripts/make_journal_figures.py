@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+import matplotlib.ticker  # noqa: E402
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -42,8 +43,10 @@ SEL = Path("e23c/watershed/segmentations/batos_selective_distance_c1.tif")
 TOSM = Path("e11/watershed/normalized_markers/tos_e11_min.tif")
 EVAL_KW = dict(rule="fraction", ignore_overlap_threshold=0.50, morph_iou=None)
 METHODS = ["frozen", "fixflat", "v3", "cpsam_v2"]
-MLABEL = {"frozen": "BA-TOS v2 (frozen)", "fixflat": "BA-TOS v2-fixflat", "v3": "BA-TOS v3",
-          "cpsam_v2": "Cellpose-SAM v2"}
+MLABEL = {"frozen": "BA-TOS [SIBGRAPI'26]", "fixflat": "BA-TOS + corrected flattening", "v3": "BA-TOS-SF (proposed)",
+          "cpsam_v2": "Cellpose-SAM"}
+MLABEL_WRAP = {"frozen": "BA-TOS\n[SIBGRAPI'26]", "fixflat": "BA-TOS +\ncorrected flattening",
+               "v3": "BA-TOS-SF\n(proposed)", "cpsam_v2": "Cellpose-SAM"}  # fig. 1 column titles
 SPEC_COL = {"EFR": "#1f77b4", "EFS": "#17becf", "EMR": "#d62728", "EMS": "#ff9896", "EOR": "#2ca02c", "EOS": "#98df8a"}
 plt.rcParams.update({"font.size": 7, "axes.titlesize": 7, "axes.labelsize": 7, "legend.fontsize": 6,
                      "font.family": "DejaVu Sans"})
@@ -185,9 +188,26 @@ def save(fig, name: str) -> None:
     print(f"wrote {p} -> {PAPER / name}", flush=True)
 
 
+def membrane_air(gray: np.ndarray, gt: np.ndarray):
+    """Display-only masks (GT used as a display mask, never by a method): the confining membrane = largest bright
+    Otsu-foreground component carrying no GT label; exterior air = largest dark region away from GT."""
+    from skimage.filters import threshold_otsu
+    sm = ndi.gaussian_filter(gray.astype(np.float32), 1.0)
+    thr = threshold_otsu(sm)
+    fg = sm > thr
+    membrane = fg & (ndi.binary_dilation(gt > 0, iterations=1) == 0)
+    lab, _ = ndi.label(membrane)
+    if lab.max():
+        membrane = lab == (np.argmax(np.bincount(lab.ravel())[1:]) + 1)  # the confining sheet (one component)
+    dark, _ = ndi.label(~fg & ~ndi.binary_dilation(gt > 0, iterations=2))
+    air = dark == (np.argmax(np.bincount(dark.ravel())[1:]) + 1)  # largest dark region = exterior air
+    return membrane, air, float(thr)
+
+
 # ---------------------------------------------------------------- fig 1
 
 FIG1_CROPS = ["EFRGP01_00_crop04", "EFRGP01_00_crop05", "EMRGP01_00_test01", "EORGP01_00_test01"]
+FIG1_MEMBRANE_INSET = {"EFRGP01_00_crop05"}  # inset on the membrane edge where the frozen method fails
 
 
 def fig1() -> None:
@@ -230,10 +250,24 @@ def fig1() -> None:
             panels.append((mth, overlay(g2, p2, cols), f1, status))
             meta.append({"crop_id": cid, "method": mth, "status": status, "f1_050": f1, "slice_z": z})
             del pred
-        # inset window: 48x48 where the methods disagree most (variance of per-pixel correctness), 10 px margin
-        var = np.var(np.stack(correct).astype(np.float32), 0)
+        # inset window (48x48, 10 px margin): where the methods disagree most (variance of per-pixel correctness);
+        # on FIG1_MEMBRANE_INSET crops instead where the frozen method is wrong within 3 px of the membrane edge
         W = 48
-        sm = ndi.uniform_filter(var, W, mode="constant")
+        if cid in FIG1_MEMBRANE_INSET:
+            from skimage.segmentation import find_boundaries
+            mem = membrane_air(gray, gt)[0][z]
+            # membrane edge (its boundary pixels); the window centre must lie on it, score = frozen-wrong px in window
+            edge = find_boundaries(mem, mode="inner") & mem
+            wrong = (~correct[METHODS.index("frozen")]).astype(np.float32)
+            sm = ndi.uniform_filter(wrong, W, mode="constant") * edge
+            print(f"  {cid}: membrane on slice {mem.mean():.3f}, edge px {int(edge.sum())}", flush=True)
+            if not sm.any():
+                raise SystemExit(f"fig1: no membrane edge / frozen error on {cid} slice {z}")
+            inset_rule = "centre_on_membrane_edge_max_frozen_error"
+        else:
+            score = np.var(np.stack(correct).astype(np.float32), 0)
+            inset_rule = "max_method_disagreement"
+            sm = ndi.uniform_filter(score, W, mode="constant")
         sm[: W // 2 + 10], sm[-W // 2 - 10:], sm[:, : W // 2 + 10], sm[:, -W // 2 - 10:] = 0, 0, 0, 0
         cy, cx = np.unravel_index(np.argmax(sm), sm.shape)
         y0, x0 = cy - W // 2, cx - W // 2
@@ -244,7 +278,7 @@ def fig1() -> None:
             ax.imshow(img if img.ndim == 3 else img, cmap="gray", vmin=0, vmax=1, interpolation="nearest")
             ax.set_xticks([]), ax.set_yticks([])
             if r == 0:
-                ax.set_title({"gray": "grey", "GT": "ground truth"}.get(name, MLABEL.get(name, name)))
+                ax.set_title({"gray": "grey", "GT": "ground truth"}.get(name, MLABEL_WRAP.get(name, name)))
             if f1 is not None:
                 ax.set_xlabel(f"F1 {f1:.3f}" + (" (run failed)" if status == "failed" else ""), labelpad=1.5)
             if c == 0:
@@ -255,7 +289,8 @@ def fig1() -> None:
             ins.set_xticks([]), ins.set_yticks([])
             for s in ins.spines.values():
                 s.set_edgecolor("yellow"), s.set_linewidth(0.6)
-        meta[-1]["inset_yx"] = [int(y0), int(x0), W]
+        for m in meta[-len(METHODS):]:
+            m["inset_yx"], m["inset_rule"] = [int(y0), int(x0), W], inset_rule
         del gray, gt
     fig.subplots_adjust(wspace=0.03, hspace=0.12)
     save(fig, "fig1_qualitative_slices.png")
@@ -276,17 +311,8 @@ def marker_centroids(path: Path) -> np.ndarray:
 def fig2() -> None:
     cid = "EFRGP01_00_crop05"
     gray, gt = gray_gt(cid)
-    from skimage.filters import threshold_otsu
     from skimage.segmentation import find_boundaries
-    sm = ndi.gaussian_filter(gray.astype(np.float32), 1.0)
-    thr = threshold_otsu(sm)
-    fg = sm > thr
-    membrane = fg & (ndi.binary_dilation(gt > 0, iterations=1) == 0)
-    lab, _ = ndi.label(membrane)
-    if lab.max():
-        membrane = lab == (np.argmax(np.bincount(lab.ravel())[1:]) + 1)  # the confining sheet (one component)
-    dark, _ = ndi.label(~fg & ~ndi.binary_dilation(gt > 0, iterations=2))
-    air = dark == (np.argmax(np.bincount(dark.ravel())[1:]) + 1)  # largest dark region = exterior air
+    membrane, air, thr = membrane_air(gray, gt)
     ok = gt_valid(gt)
     mk = {"frozen": marker_centroids(run_dir("frozen", cid) / TOSM), "v3": marker_centroids(run_dir("v3", cid) / TOSM)}
     print(f"  ToS-MIN markers: frozen {len(mk['frozen'])}, v3 {len(mk['v3'])}; air {air.mean():.3f}, "
@@ -316,7 +342,8 @@ def fig2() -> None:
             near = np.abs(p[:, axis] - c[axis]) <= 3 if len(p) else np.zeros(0, bool)
             ax.scatter(p[near, other[1]], p[near, other[0]], **style)
             cnt[key] = int(near.sum())
-        ax.set_title(f"{name} slice ({'zyx'[axis]} = {c[axis]})\nmarkers within ±3: v2 {cnt['frozen']}, v3 {cnt['v3']}")
+        ax.set_title(f"{name} slice ({'zyx'[axis]} = {c[axis]}); markers within ±3:\n"
+                     f"{MLABEL['frozen']}: {cnt['frozen']}\n{MLABEL['v3']}: {cnt['v3']}")
         ax.set_xlabel(xl), ax.set_ylabel(yl)
         ax.set_xticks([0, 100, 199]), ax.set_yticks([0, 100, 199])
     handles = [Patch(color=(0.1, 0.85, 0.1), label="valid GT boundary"),
@@ -405,7 +432,8 @@ def fig4() -> None:
     lo, hi = 0, float(np.ceil(d[["gt_r", "r_granulo", "r_e13"]].max().max() + 1))
     fig, axs = plt.subplots(1, 2, figsize=(6.2, 3.0), sharey=True)
     rng = np.random.default_rng(0)
-    for ax, (col, name) in zip(axs, (("r_granulo", r"$r_\mathrm{granulo}$ (v3)"), ("r_e13", r"$\hat r$ e13 (v2)"))):
+    for ax, (col, name) in zip(axs, (("r_granulo", r"$r_\mathrm{granulo}$, " + MLABEL["v3"]),
+                                     ("r_e13", r"$\hat r$ e13, " + MLABEL["frozen"]))):
         ax.fill_between([lo, hi], [lo * 0.9, hi * 0.9], [lo * 1.1, hi * 1.1], color="0.9", lw=0, label="±10 %")
         ax.plot([lo, hi], [lo, hi], "k-", lw=0.6)
         for sp, g in d.groupby("specimen"):
@@ -434,9 +462,10 @@ def fig4() -> None:
 
 def fig5() -> None:
     from skimage.measure import find_contours
-    fig, axs = plt.subplots(1, 2, figsize=(6.4, 3.3))
-    stats = []
-    for ax, cid in zip(axs, ["EFRGP01_00_crop04", "EORGP01_00_test01"]):
+    F5_CROPS = ["EFRGP01_00_crop04", "EORGP01_00_test01"]
+    fig, axs = plt.subplots(1, 3, figsize=(7.2, 2.9), gridspec_kw={"width_ratios": [1, 1, 1.3]})
+    stats, per_grain = [], []
+    for ax, cid in zip(axs[:2], F5_CROPS):
         gray, gt = gray_gt(cid)
         ok = gt_valid(gt)
         z = gt.shape[0] // 2
@@ -450,8 +479,10 @@ def fig5() -> None:
             rel[m] = np.array([sp[maps[m][g]] / sg[g] - 1 for g in common])
             stats.append({"crop_id": cid, "method": m, "n_common_matched": len(common),
                           "median_rel_volume_err": float(np.median(rel[m]))})
-        # zoom window: 64x64 on the central slice with the most commonly matched valid grains
-        W = 64
+            per_grain += [{"crop_id": cid, "method": m, "gt_label": int(g), "rel_volume_err": float(e)}
+                          for g, e in zip(common, rel[m])]
+        # zoom window: 32x32 on the central slice with the most commonly matched valid grains
+        W = 32
         on = np.isin(gt[z], common)
         cnt = ndi.uniform_filter(on.astype(np.float32), W, mode="constant")
         cnt[: W // 2], cnt[-W // 2:], cnt[:, : W // 2], cnt[:, -W // 2:] = 0, 0, 0, 0
@@ -467,19 +498,53 @@ def fig5() -> None:
                 for cc in find_contours(np.pad(m2, 1).astype(float), 0.5):
                     ax.plot(cc[:, 1] - 1, cc[:, 0] - 1, color=col, lw=lw, ls="-" if src else "--")
         ax.set_xticks([]), ax.set_yticks([])
-        ax.set_title(f"{cid}\nz = {z}, window y {y0}–{y0 + W}, x {x0}–{x0 + W}", fontsize=6.5)
-        ax.set_xlabel(f"median volume error on {len(common)} grains matched by both\n"
-                      f"v3 {np.median(rel['v3']) * 100:+.1f} %, Cellpose-SAM v2 {np.median(rel['cpsam_v2']) * 100:+.1f} %",
-                      fontsize=6)
+        ax.set_title(f"({'ab'[F5_CROPS.index(cid)]}) {cid}\nz = {z}, window y {y0}–{y0 + W}, x {x0}–{x0 + W}",
+                     fontsize=6.5)
+        ax.set_xlabel(f"median volume error\n({len(common)} grains matched by both):\n"
+                      f"{MLABEL['v3']} {np.median(rel['v3']) * 100:+.1f} %\n"
+                      f"{MLABEL['cpsam_v2']} {np.median(rel['cpsam_v2']) * 100:+.1f} %", fontsize=6)
         del gray, gt, preds
-    from matplotlib.lines import Line2D
-    fig.legend([Line2D([], [], color="white", ls="--", lw=1.1, path_effects=None),
+    # (c) per-grain relative volume error, grains matched (IoU > 0.5) by both methods; fraction of grains per bin
+    pg = pd.DataFrame(per_grain)
+    hc = {"v3": "#0a9bb0", "cpsam_v2": "#c2189b"}  # darker cyan / magenta of the contour colours (white background)
+    lo, hi = -0.2, 0.6
+    bins = np.arange(lo, hi + 1e-9, 0.02)
+    n_lo, n_hi = int((pg.rel_volume_err < lo).sum()), int((pg.rel_volume_err > hi).sum())
+    h = axs[2]
+    h.axvline(0, color="0.5", lw=0.5)
+    crop_ls = dict(zip(F5_CROPS, ("-", "--")))
+    for cid, ls in crop_ls.items():
+        for m in ("v3", "cpsam_v2"):
+            e = pg[(pg.crop_id == cid) & (pg.method == m)].rel_volume_err.to_numpy()
+            h.hist(np.clip(e, lo, hi), bins=bins, weights=np.full(len(e), 1 / len(e)), histtype="step",
+                   color=hc[m], ls=ls, lw=0.9)
+            h.axvline(np.median(e), color=hc[m], ls=ls, lw=0.6, alpha=0.8)
+    h.set_xlim(lo, hi)
+    h.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0, decimals=0))
+    h.set_xlabel("relative volume error (pred / GT − 1)"), h.set_ylabel("fraction of grains", labelpad=1)
+    h.set_title("(c) per-grain volume error\n(grains matched by both; vertical lines: medians)", fontsize=6.5)
+    n_by = pg.groupby("crop_id").gt_label.nunique()
+    hh = [Patch(color=hc["v3"], label=MLABEL["v3"]), Patch(color=hc["cpsam_v2"], label=MLABEL["cpsam_v2"])]
+    hh += [Line2D([], [], color="0.3", ls=ls, lw=0.9,
+                  label=f"{cid[:3]} {cid.split('_')[-1]} (n = {n_by[cid]})") for cid, ls in crop_ls.items()]
+    h.legend(handles=hh, loc="upper right", bbox_to_anchor=(1.0, 0.8), fontsize=5, frameon=False, handlelength=1.6)
+    note = []
+    if n_lo:
+        note.append(f"{n_lo} below {lo:.0%}")
+    if n_hi:
+        note.append(f"{n_hi} above +{hi:.0%}")
+    if note:
+        h.text(0.97, 0.36, " / ".join(note) + "\nshown in the end bins", transform=h.transAxes, ha="right",
+               va="top", fontsize=5.5)
+    print(f"  fig5: per-grain values {len(pg)}, below {lo:.0%}: {n_lo}, above {hi:.0%}: {n_hi}", flush=True)
+    fig.legend([Line2D([], [], color="white", ls="--", lw=1.1),
                 Line2D([], [], color="cyan", lw=0.8), Line2D([], [], color="magenta", lw=0.8)],
                ["GT (dashed)", MLABEL["v3"], MLABEL["cpsam_v2"]], loc="lower center", ncol=3, frameon=True,
-               facecolor="0.3", labelcolor="white", bbox_to_anchor=(0.5, 0.0))
-    fig.subplots_adjust(wspace=0.08, bottom=0.16)
+               facecolor="0.3", labelcolor="white", bbox_to_anchor=(0.32, -0.03))
+    fig.subplots_adjust(wspace=0.3, bottom=0.27)
     save(fig, "fig5_boundary_contours.png")
     pd.DataFrame(stats).to_csv(OUT / "fig5_volume_error.csv", index=False)
+    pg.to_csv(OUT / "fig5_volume_error_per_grain.csv", index=False)
 
 
 # ---------------------------------------------------------------- fig 6
@@ -517,7 +582,7 @@ def fig6() -> None:
         ax.plot_surface(X, Y, Z, facecolors=col[f] * shade, rstride=1, cstride=1, linewidth=0, antialiased=False,
                         shade=False)
     ax.set_box_aspect((1, 1, 1)), ax.view_init(elev=24, azim=-58), ax.set_axis_off()
-    ax.set_title(f"(a) stitched BA-TOS v3 block (600³ core, 3×3×3 tiles),\nfaces cut {SHELL} voxels inside "
+    ax.set_title(f"(a) stitched {MLABEL['v3']} block (600³ core, 3×3×3 tiles),\nfaces cut {SHELL} voxels inside "
                  f"({n}³ shown)", fontsize=6.5)
     # (b) surfaces of the grains whose centroid lies in a central S^3 sub-block of the core (Lambert shading)
     ax = fig.add_subplot(1, 2, 2, projection="3d")

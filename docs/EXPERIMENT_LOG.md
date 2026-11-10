@@ -835,3 +835,24 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
     tiles (labelled 0.10–0.30 on the faces vs 0.50–0.64 inside).
   - The remaining black edge bands are outside the cylindrical specimen (radius ≈ 349; edges ≈ 390 from the axis;
     GT is empty there too).
+
+## 2026-11-10 — Journal figures: method renames, Fig. 1 crop05 inset, Fig. 5 zoom + histogram (worktree `..\batos-v32`)
+- All figures were regenerated from the same frozen run outputs; no run was repeated. Previous masters were backed up
+  to `C:\BA_TOS_DATA\figures\_prev_e62a923\`.
+- Display names in every figure and in `CAPTIONS.md`:
+  - v2 frozen → "BA-TOS [SIBGRAPI'26]";
+  - v2-fixflat → "BA-TOS + corrected flattening";
+  - v3 → "BA-TOS-SF (proposed)";
+  - cpsam_v2 → "Cellpose-SAM".
+  - Config and run identifiers are unchanged.
+- Fig. 1, crop05: the 48² inset is now centred on a membrane-edge pixel, choosing the window with the most per-pixel
+  errors of the frozen method; the result is y 105–153, x 15–63. The other crops keep the max-disagreement rule.
+  - The membrane extraction was moved into a helper `membrane_air()` shared with Fig. 2. Its outputs are unchanged
+    (air 0.510, membrane 0.021, markers 53/188).
+  - All 16 F1 values are unchanged and match the record wherever one exists.
+- Fig. 5: window 64 → 32, plus panel (c), the per-grain relative volume error histogram. Per-grain values are in
+  `fig5_volume_error_per_grain.csv`.
+  - Medians are unchanged: crop04 −3.7 % / +11.7 %; EOR test01 +6.4 % / +9.4 % (BA-TOS-SF / Cellpose-SAM).
+  - The histogram shows that BA-TOS-SF has a heavy over-volume tail: >+20 % on 46/259 grains (crop04) and 28/69 (EOR
+    test01), max +79 % / +91 %.
+  - Cellpose-SAM stays in +6 to +14 % on every grain.
