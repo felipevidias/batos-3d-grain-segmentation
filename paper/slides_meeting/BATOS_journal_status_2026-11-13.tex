@@ -244,27 +244,51 @@ All 52 & \textbf{0.998} & 0.896 \\
 % 11
 \begin{frame}{Where BA-TOS still differs: boundaries}
 \centering
-\includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{fig5_boundary_contours.png}
+\includegraphics[width=\linewidth,height=0.44\textheight,keepaspectratio]{fig5_boundary_contours.png}
 
-\raggedright
+\vspace{0.1cm}
+\begin{columns}[T,onlytextwidth]
+\column{0.40\textwidth}
+\centering
+\footnotesize
+\begin{tabular}{lcc}
+\toprule
+52 test crops & F1@0.50 & mIoU \\
+\midrule
+Cellpose-SAM & 0.998 & 0.899 \\
+Cellpose, eroded 1 voxel & \textbf{0.999} & 0.917 \\
+Hybrid & 0.996 & \textbf{0.923} \\
+\bottomrule
+\end{tabular}
+
+{\tiny Hybrid = Cellpose markers + \SF{} watershed. Crop-macro, no-marker eval.}
+\column{0.57\textwidth}
+\small
 \begin{itemize}
   \item Cellpose-SAM: consistent \textbf{+6 to +14\,\%} volume bias (about one voxel outside the GT).
-  \item \SF{}: median $-3.7$\,\% on crop04, but a \textbf{heavy tail of merged grains} (46/259 grains above +20\,\%).
-  \item Hybrid (Cellpose markers + morphological boundary) is running.
+  \item \SF{}: median $-3.7$\,\% on crop04, but a \textbf{heavy tail of merged grains} (46/259 above +20\,\%).
+  \item A \textbf{1-voxel erosion captures the boundary gain}; the hybrid adds nothing worth a section.
 \end{itemize}
+\end{columns}
 \end{frame}
 
 % ---------------------------------------------------------------------------
 % 12
-\begin{frame}{Decisions for today}
+\begin{frame}{Recommendation and decisions for today}
+\begin{block}{Recommended thesis (A)}
+Diagnosis of the published method $+$ scale-free version (\SF{}) $+$ honest benchmark against Cellpose-SAM, on a pre-registered protocol over 6 specimens.
+\end{block}
+
+\vspace{0.3cm}
+\textbf{Open decisions}
 \begin{enumerate}
-  \item \textbf{Thesis:}\\
-    (A) diagnostic + scale-free method + honest benchmark, or\\
-    (B) hybrid for grain analysis (Cellpose markers, morphological boundaries).
   \item \textbf{Venue} for the journal version.
-  \item \textbf{When to involve} Yukiko / Nicolas, and Pinz\'on / Viggiani: how was the GT made?
-  \item \textbf{Still running:} full volume, v3c, hybrid, tracking.
+  \item \textbf{When to involve} Yukiko / Nicolas.
+  \item \textbf{Ask Pinz\'on / Viggiani} how the GT was made.
 \end{enumerate}
+
+\vspace{0.2cm}
+{\small \textbf{Still running:} full volume, v3c, tracking.}
 \end{frame}
 
 % ---------------------------------------------------------------------------
