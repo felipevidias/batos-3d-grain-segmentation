@@ -1,0 +1,284 @@
+\documentclass[aspectratio=169]{beamer}
+
+%%% 1 => show slide number
+%%% 0 => hide slide number
+\def\insertpagenumber{1}
+
+\title[BA-TOS journal]{\scalefont{0.80} BA-TOS: from SIBGRAPI 2026 to a journal version\\[4pt] \scalefont{0.62}status and decisions}
+\date{Advisor meeting -- November 13, 2026}
+\author[Felipe Vilhena Dias]{Felipe Vilhena Dias\\Zenilton K. G. Patroc\'inio Jr. -- Nicolas Passat -- Yukiko Kenmochi -- Silvio Jamil F. Guimar\~aes}
+\institute[]{}
+
+\makeatletter
+\def\input@path{{./general/}{./presentations/}}
+\graphicspath{{./general/}{./presentations/felipe/batos/images/}{../figs/journal/}}
+\makeatother
+
+\newcommand{\pathtodir}{./presentations/felipe/batos/}
+
+\input{./general/ppginf-preamble.tex}
+\input{./general/sj-commands.tex}
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{adjustbox}
+\usetikzlibrary{positioning}
+\usetheme{pucvirtual}
+
+\setbeamertemplate{navigation symbols}{}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+
+\newcommand{\SF}{BA-TOS-SF}
+\newcommand{\src}[1]{\par\vfill{\tiny\color{gray}Source: \texttt{#1}}}
+
+\begin{document}
+
+% ---------------------------------------------------------------------------
+% 1
+\begin{frame}
+\titlepage
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 2
+\begin{frame}{Where we started: the SIBGRAPI 2026 result}
+\centering
+\begin{adjustbox}{max width=0.95\linewidth}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Data} & \textbf{Crops} & \textbf{Specimens} & \textbf{Crop-macro F1@0.50} & \textbf{Without safeguard} \\
+\midrule
+EFRGP01, 2 scans, $200^3$ & 12 & 1 & $\mathbf{0.906 \pm 0.210}$ (min 0.260) & $0.824 \pm 0.367$ (min 0.012) \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\vspace{0.6cm}
+\raggedright
+\textbf{Three open issues}
+\begin{enumerate}
+  \item \textbf{Safeguard is retrospective:} the support-collapse gate was added after seeing crop05 fail.
+  \item \textbf{Parameters:} dozens of hand-set constants, never audited.
+  \item \textbf{No external validation:} one specimen, the same 12 crops used for design and evaluation.
+\end{enumerate}
+\src{results/batos\_sibgrapi/crop\_macro\_summary.csv (seed-ignore, no size filter, sample SD)}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 3
+\begin{frame}{Step 1: reproduce before changing anything}
+\Large
+\begin{itemize}
+  \item The camera-ready code was lost with the Linux machine; the E-series pipeline was rebuilt from recovered scripts.
+  \item Run verbatim, it reproduces \textbf{Table II on all 12 crops within $\pm 0.0005$}.
+  \item Deterministic: 4 reruns bit-identical; SHA-256 of every script recorded; tag \texttt{batos-paper-v2-frozen}.
+\end{itemize}
+
+\vspace{0.5cm}
+\begin{block}{Why it matters}
+Every later number is a controlled change against this frozen reference, not against a memory of the paper.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 4
+\begin{frame}{Root cause of the crop05 failure: a flatten offset}
+\begin{columns}[T,onlytextwidth]
+\column{0.56\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.50\textheight,keepaspectratio]{fig2_crop05_orthogonal_markers.png}\\
+{\scriptsize Membrane (magenta), exterior air (blue, 51\,\% of the crop); markers: SIBGRAPI (red) vs \SF{} (cyan)}
+\column{0.42\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{fig3_crop05_flatten_offset.png}\\
+{\scriptsize Background reference: 0.9 (frozen) vs 176.7 (fixed)}
+\end{columns}
+
+\vspace{0.25cm}
+\begin{itemize}
+  \item Air at value 0 drags $\mathrm{median}(blur>0)$ to 0.9; \textbf{one-line fix:} $\mathrm{median}(blur \ge 1)$.
+  \item The safeguard then never fires; crop-macro F1@0.50 \textbf{0.824 $\rightarrow$ 0.976} (12 crops).
+\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 5
+\begin{frame}{Scale: a granulometric estimator with no parameter}
+\centering
+\includegraphics[width=\linewidth,height=0.58\textheight,keepaspectratio]{fig4_scale_estimates.png}
+
+\vspace{0.15cm}
+\raggedright
+\begin{itemize}
+  \item $r_\mathrm{granulo}$ = argmax of the pattern spectrum of the specimen foreground: \textbf{64/64 crops within $\pm$10\,\%} of the GT radius.
+  \item The SIBGRAPI estimator (e13): 19/63 within $\pm$10\,\%; it \textbf{halves the radius} on the larger EM / EO grains.
+\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 6
+\begin{frame}{\SF{} (v3): what changed}
+\begin{columns}[T,onlytextwidth]
+\column{0.38\textwidth}
+\begin{itemize}
+  \item Scale from $r_\mathrm{granulo}$; every size constant follows $s = r_\mathrm{granulo}/10$.
+  \item Thresholds from specimen-only statistics (Otsu inside the specimen).
+  \item Absolute grey-level guards removed.
+  \item No safeguard needed: the gate never fires.
+\end{itemize}
+\column{0.60\textwidth}
+\centering
+\footnotesize
+\begin{tabular}{lcc}
+\toprule
+\textbf{93 constants} & \textbf{SIBGRAPI} & \textbf{\SF} \\
+\midrule
+Fixed in voxels (size, volume, count) & 43 & \textbf{0} \\
+Ad-hoc thresholds & 6 & \textbf{0} \\
+Absolute grey-level guards & 3 & \textbf{0} \\
+Dimensionless (kept) & 41 & 41 \\
+\midrule
+Gate fires (52 test crops) & 30 & \textbf{0} \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.1cm}
+{\scriptsize Size constants scale as $s$, $s^3$ or $1/s^3$; on the dev crops $s=1$.}
+\end{columns}
+\src{docs/V3\_SCALE\_FREE.md (full constant table); paper/tables/test\_v3\_tables.tex}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 7
+\begin{frame}{Held-out validation: 52 crops, 6 specimens}
+\centering
+\begin{adjustbox}{max width=0.88\linewidth,max totalheight=0.52\textheight}
+\begin{tabular}{lrcccc}
+\toprule
+Specimen & $n$ & $\hat r$ / $r_\mathrm{in}$ & SIBGRAPI'26 & + fixed flattening & \SF{} \\
+\midrule
+EFR & 12 & 10 / 10.6 & $0.879 \pm 0.223$ & $0.956 \pm 0.048$ & $\mathbf{0.985 \pm 0.011}$ \\
+EFS &  8 & 10 / 10.6 & $0.882 \pm 0.155$ & $0.968 \pm 0.043$ & $\mathbf{0.974 \pm 0.044}$ \\
+EMR &  8 & 14 / 14.5 & $0.303 \pm 0.439$ & $0.250 \pm 0.416$ & $\mathbf{0.980 \pm 0.027}$ \\
+EMS &  8 & 14 / 14.7 & $0.432 \pm 0.465$ & $0.479 \pm 0.474$ & $\mathbf{0.986 \pm 0.020}$ \\
+EOR &  8 & 15 / 15.3 & $0.293 \pm 0.362$ & $0.238 \pm 0.434$ & $\mathbf{0.754 \pm 0.240}$ \\
+EOS &  8 & 15 / 15.3 & $0.265 \pm 0.429$ & $0.365 \pm 0.499$ & $\mathbf{0.754 \pm 0.214}$ \\
+\midrule
+External (5 spec.) & 40 & -- & $0.435 \pm 0.435$ & $0.460 \pm 0.473$ & $\mathbf{0.890 \pm 0.178}$ \\
+All                & 52 & -- & $0.538 \pm 0.437$ & $0.575 \pm 0.465$ & $\mathbf{0.912 \pm 0.161}$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\vspace{0.2cm}
+\raggedright
+\begin{itemize}
+  \item Protocol pre-registered: crop list committed before cutting (GT-free rule, fixed seed); nothing tuned on test.
+  \item \SF{} fixes the EM specimens; the large-grained EO specimens remain the weak point (0.75).
+\end{itemize}
+{\tiny\color{gray}Crop-macro F1@0.50, seed-ignore, no size filter. Source: \texttt{results/test\_v3/}}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 8
+\begin{frame}{Qualitative: 4 crops $\times$ 6 columns}
+\centering
+\includegraphics[width=\linewidth,height=0.86\textheight,keepaspectratio]{fig1_qualitative_slices.png}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 9
+\begin{frame}{Parameter audit: 96 constants, 25 influential}
+\begin{columns}[c,onlytextwidth]
+\column{0.38\textwidth}
+\begin{itemize}
+  \item 96 method constants swept one at a time (12 dev crops); \textbf{25} move F1 by $>0.01$.
+  \item Selector weights sit on a \textbf{narrow ridge}: halving or doubling one drops F1 by 0.4--0.6.
+  \item \texttt{w\_support} is \textbf{dead code}: $\Delta = 0.000$.
+\end{itemize}
+\column{0.60\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.78\textheight,keepaspectratio]{sens_top10.png}
+\end{columns}
+\src{results/sensitivity/ranking.csv (top 10 method parameters, BA-TOS\_sel route)}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 10
+\begin{frame}{The honest comparison: Cellpose-SAM, untuned}
+\begin{columns}[T,onlytextwidth]
+\column{0.42\textwidth}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+Specimen & \texttt{cpsam\_v2} & \SF{} \\
+\midrule
+EFR & \textbf{0.999} & 0.977 \\
+EFS & \textbf{0.999} & 0.964 \\
+EMR & \textbf{0.998} & 0.966 \\
+EMS & \textbf{0.999} & 0.970 \\
+EOR & \textbf{0.996} & 0.735 \\
+EOS & \textbf{0.998} & 0.727 \\
+\midrule
+All 52 & \textbf{0.998} & 0.896 \\
+\bottomrule
+\end{tabular}
+
+{\tiny Crop-macro F1@0.50, no-marker evaluation (same rule for both)}
+\column{0.55\textwidth}
+\small
+\begin{itemize}
+  \item Default settings, one config, no fine-tuning; all four Cellpose 4 models agree within 0.002.
+  \item \textbf{Robustness:} at 5\,\% added noise \SF{} collapses (0.13 / 0.06 / 0.00 on 3 crops), \texttt{cpsam\_v2} $\ge 0.977$; at $2\times$ scale 0.963 vs 0.900.
+  \item \textbf{No training-data leakage:} the documented Cellpose-SAM set is 19 cell/nuclei datasets, 2D only (plus 98 natural photos, e.g.\ rocks); no micro-CT, granular data or Zenodo 8014905.
+  \item June 2026 models have no published list, but the documented \texttt{cpsam} scores the same (0.999).
+\end{itemize}
+\end{columns}
+\src{results/cellpose/REPORT.md \S2, \S7, \S7b; tables.md}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 11
+\begin{frame}{Where BA-TOS still differs: boundaries}
+\centering
+\includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{fig5_boundary_contours.png}
+
+\raggedright
+\begin{itemize}
+  \item Cellpose-SAM: consistent \textbf{+6 to +14\,\%} volume bias (about one voxel outside the GT).
+  \item \SF{}: median $-3.7$\,\% on crop04, but a \textbf{heavy tail of merged grains} (46/259 grains above +20\,\%).
+  \item Hybrid (Cellpose markers + morphological boundary) is running.
+\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% 12
+\begin{frame}{Decisions for today}
+\begin{enumerate}
+  \item \textbf{Thesis:}\\
+    (A) diagnostic + scale-free method + honest benchmark, or\\
+    (B) hybrid for grain analysis (Cellpose markers, morphological boundaries).
+  \item \textbf{Venue} for the journal version.
+  \item \textbf{When to involve} Yukiko / Nicolas, and Pinz\'on / Viggiani: how was the GT made?
+  \item \textbf{Still running:} full volume, v3c, hybrid, tracking.
+\end{enumerate}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+% Backup
+\appendix
+\begin{frame}{Backup: full-volume tiled \SF{}}
+\centering
+\includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{fig6_smoke_block_3d.png}
+
+\raggedright
+\begin{itemize}
+  \item Central $3\times3\times3$ tiles of EFRGP01\_00: $600^3$ core, halo 20, orphan-rescue stitching.
+  \item 9,753 instances; F1@0.50 = 0.865 on the 6,005 valid GT grains (seed-ignore, no filter).
+\end{itemize}
+\end{frame}
+
+\end{document}
