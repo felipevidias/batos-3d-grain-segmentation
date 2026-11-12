@@ -160,7 +160,7 @@ All                & 52 & -- & $0.538 \pm 0.437$ & $0.575 \pm 0.465$ & $\mathbf{
 \raggedright
 \begin{itemize}
   \item Protocol pre-registered: crop list committed before cutting (GT-free rule, fixed seed); nothing tuned on test.
-  \item \SF{} reaches 0.98 on the EM specimens; the large-grained EO specimens remain the weak point (0.75).
+  \item \SF{} reaches 0.98 on the EM specimens; 0.75 on the large-grained EO specimens.
 \end{itemize}
 {\tiny\color{gray}Crop-macro F1@0.50, seed-ignore, no size filter. Source: \texttt{results/test\_v3/}}
 \end{frame}
@@ -180,7 +180,7 @@ All                & 52 & -- & $0.538 \pm 0.437$ & $0.575 \pm 0.465$ & $\mathbf{
 \begin{itemize}
   \item 96 method constants swept one at a time (12 dev crops); \textbf{25} move F1 by $>0.01$.
   \item Selector weights sit on a \textbf{narrow ridge}: halving or doubling one drops F1 by 0.4--0.6.
-  \item \texttt{w\_support} is \textbf{dead code}: $\Delta = 0.000$.
+  \item \texttt{w\_support} has \textbf{no effect}: $\Delta = 0.000$.
 \end{itemize}
 \column{0.60\textwidth}
 \centering
@@ -191,7 +191,7 @@ All                & 52 & -- & $0.538 \pm 0.437$ & $0.575 \pm 0.465$ & $\mathbf{
 
 % ---------------------------------------------------------------------------
 % 9
-\begin{frame}{The honest comparison: Cellpose-SAM, untuned}
+\begin{frame}{Comparison with Cellpose-SAM (default settings)}
 \begin{columns}[T,onlytextwidth]
 \column{0.40\textwidth}
 \centering
@@ -226,10 +226,10 @@ Hybrid & 0.996 & \textbf{0.923} \\
 \column{0.57\textwidth}
 \small
 \begin{itemize}
-  \item \textbf{Untuned:} one default config, no fine-tuning; all four Cellpose 4 models agree within 0.002.
-  \item \textbf{Robustness:} at 5\,\% added noise \SF{} collapses (0.13 / 0.06 / 0.00 on 3 crops), \texttt{cpsam\_v2} $\ge 0.977$; at $2\times$ scale 0.963 vs 0.900.
-  \item \textbf{No training-data leakage:} documented set = 19 cell/nuclei datasets, 2D (plus 98 natural photos); no micro-CT, granular data or Zenodo 8014905. The undocumented June 2026 models score the same as the documented \texttt{cpsam}.
-  \item A \textbf{1-voxel erosion captures the boundary gain}; the hybrid adds nothing worth a section.
+  \item \textbf{Settings:} one default config, no fine-tuning; all four Cellpose 4 models agree within 0.002.
+  \item \textbf{Robustness:} at 5\,\% added noise \SF{} drops to 0.13 / 0.06 / 0.00 (3 crops), \texttt{cpsam\_v2} $\ge 0.977$; at $2\times$ scale 0.963 vs 0.900.
+  \item \textbf{Training data:} documented set = 19 cell/nuclei datasets, 2D (plus 98 natural photos); no micro-CT, granular data or Zenodo 8014905. The undocumented June 2026 models score the same as the documented \texttt{cpsam}.
+  \item \textbf{Boundaries:} a 1-voxel erosion of Cellpose-SAM gives mIoU 0.917; the hybrid gives 0.923.
 \end{itemize}
 \end{columns}
 \end{frame}
