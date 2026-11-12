@@ -59,8 +59,8 @@ EFRGP01, 2 scans, $200^3$ & 12 & 1 & $\mathbf{0.906 \pm 0.210}$ (min 0.260) & $0
 \raggedright
 \textbf{Three open issues}
 \begin{enumerate}
-  \item \textbf{Safeguard is retrospective:} the support-collapse gate was added after seeing crop05 fail.
-  \item \textbf{Parameters:} dozens of hand-set constants, never audited.
+  \item \textbf{Support collapse on two crops} handled by a safeguard; cause not yet identified.
+  \item \textbf{Parameters:} many constants, sensitivity measured on one crop only.
   \item \textbf{No external validation:} one specimen, the same 12 crops used for design and evaluation.
 \end{enumerate}
 \src{results/batos\_sibgrapi/crop\_macro\_summary.csv (seed-ignore, no size filter, sample SD)}
@@ -68,22 +68,22 @@ EFRGP01, 2 scans, $200^3$ & 12 & 1 & $\mathbf{0.906 \pm 0.210}$ (min 0.260) & $0
 
 % ---------------------------------------------------------------------------
 % 3
-\begin{frame}{Root cause of the crop05 failure: a flatten offset}
+\begin{frame}{Crop05 failure explained: exterior air biases the flatten offset}
 \begin{columns}[T,onlytextwidth]
 \column{0.56\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.50\textheight,keepaspectratio]{fig2_crop05_orthogonal_markers.png}\\
+\includegraphics[width=\linewidth,height=0.44\textheight,keepaspectratio]{fig2_crop05_orthogonal_markers.png}\\
 {\scriptsize Membrane (magenta), exterior air (blue, 51\,\% of the crop); markers: SIBGRAPI (red) vs \SF{} (cyan)}
 \column{0.42\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{fig3_crop05_flatten_offset.png}\\
-{\scriptsize Background reference: 0.9 (SIBGRAPI) vs 176.7 (fixed)}
+\includegraphics[width=\linewidth,height=0.48\textheight,keepaspectratio]{fig3_crop05_flatten_offset.png}\\
+{\scriptsize Offset: 0.9 (whole crop) vs 176.7 (specimen only)}
 \end{columns}
 
 \vspace{0.25cm}
 \begin{itemize}
-  \item Air at value 0 drags $\mathrm{median}(blur>0)$ to 0.9; \textbf{one-line fix:} $\mathrm{median}(blur \ge 1)$.
-  \item The safeguard then never fires; crop-macro F1@0.50 \textbf{0.824 $\rightarrow$ 0.976} (12 crops).
+  \item Air at value 0 drags $\mathrm{median}(blur>0)$ to 0.9; \textbf{one-line change:} $\mathrm{median}(blur \ge 1)$.
+  \item With the offset computed on the specimen only, the collapse does not occur and the safeguard is no longer needed; crop-macro F1@0.50 \textbf{0.824 $\rightarrow$ 0.976}.
 \end{itemize}
 \end{frame}
 
@@ -110,7 +110,7 @@ EFRGP01, 2 scans, $200^3$ & 12 & 1 & $\mathbf{0.906 \pm 0.210}$ (min 0.260) & $0
   \item Scale from $r_\mathrm{granulo}$; every size constant follows $s = r_\mathrm{granulo}/10$.
   \item Thresholds from specimen-only statistics (Otsu inside the specimen).
   \item Absolute grey-level guards removed.
-  \item No safeguard needed: the gate never fires.
+  \item Safeguard no longer needed (never activates on 52 test crops).
 \end{itemize}
 \column{0.60\textwidth}
 \centering
@@ -124,7 +124,7 @@ Ad-hoc thresholds & 6 & \textbf{0} \\
 Absolute grey-level guards & 3 & \textbf{0} \\
 Dimensionless (kept) & 41 & 41 \\
 \midrule
-Gate fires (52 test crops) & 30 & \textbf{0} \\
+Safeguard activates (52 test crops) & 30 & \textbf{0} \\
 \bottomrule
 \end{tabular}
 
@@ -141,7 +141,7 @@ Gate fires (52 test crops) & 30 & \textbf{0} \\
 \begin{adjustbox}{max width=0.88\linewidth,max totalheight=0.52\textheight}
 \begin{tabular}{lrcccc}
 \toprule
-Specimen & $n$ & $\hat r$ / $r_\mathrm{in}$ & SIBGRAPI'26 & + fixed flattening & \SF{} \\
+Specimen & $n$ & $\hat r$ / $r_\mathrm{in}$ & SIBGRAPI'26 & + specimen-only offset & \SF{} \\
 \midrule
 EFR & 12 & 10 / 10.6 & $0.879 \pm 0.223$ & $0.956 \pm 0.048$ & $\mathbf{0.985 \pm 0.011}$ \\
 EFS &  8 & 10 / 10.6 & $0.882 \pm 0.155$ & $0.968 \pm 0.043$ & $\mathbf{0.974 \pm 0.044}$ \\
@@ -160,7 +160,7 @@ All                & 52 & -- & $0.538 \pm 0.437$ & $0.575 \pm 0.465$ & $\mathbf{
 \raggedright
 \begin{itemize}
   \item Protocol pre-registered: crop list committed before cutting (GT-free rule, fixed seed); nothing tuned on test.
-  \item \SF{} fixes the EM specimens; the large-grained EO specimens remain the weak point (0.75).
+  \item \SF{} reaches 0.98 on the EM specimens; the large-grained EO specimens remain the weak point (0.75).
 \end{itemize}
 {\tiny\color{gray}Crop-macro F1@0.50, seed-ignore, no size filter. Source: \texttt{results/test\_v3/}}
 \end{frame}
