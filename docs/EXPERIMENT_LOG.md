@@ -844,3 +844,15 @@ but not marker *count*, so a count collapse gets past it. Closest non-triggered 
   new scripts/evaluate_cellpose_synth.py. Macro F1@0.50, filter none: 1.000 / 0.998 / 0.999 / 0.963 at f 0.7/1/1.4/2
   (v3 0.972 / 0.979 / 0.979 / 0.900); with size filter 500 f^3 cpsam_v2 1.000 at all factors.
 - REPORT §9 rewritten as a one-page "Implications for the paper": recommends framing (A) benchmark/protocol.
+
+## 2026-11-23 — Disk cleanup of C:\BA_TOS_DATA\runs\ (housekeeping, no results changed)
+
+Deleted 2,971 reproducible intermediate files (32.87 GB; C: free 314.6 → 347.5 GB). runs\ went from 44.1 to about 11.2 GB.
+Deleted by category: RGB overlay/colour renders 18.57 GB; candidate/stage TIFFs (internal_dark_candidates, ToS seed_raw/
+seed_centroids, bgreject seed_raw/centroids, batos_marker_centroids, marker_seed16_for_macke) 7.65 GB; flattened/openrec/
+preprocess images 4.87 GB; masks (frozen_mask_uint8, dark_mask, external_dark_background) 1.16 GB; negative_edt_float32 0.63 GB.
+Kept: every label volume (segmentations/, filter/*_labels.tif, native/, labels.tif), every marker file (normalized_markers/,
+*_marker_components_raw.tif, seed files), all CSV/JSON/logs, all of fullvolume/ (tiles and stitch outputs incl. labels.npy), robustness and
+crop-size input volumes, and the three flattens read by journal Fig. 3 (frozen 00_crop04, 00_crop05; fixflat A 00_crop05).
+crops*, gt_full untouched. Full file list: logs/runs_cleanup_2026-11-23_deleted_files.txt.
+Consequence: scripts/run_v2_control.py and any intermediate-level determinism check now need the stage to be re-run first.
